@@ -10,11 +10,14 @@ namespace Crawlr
 class ModuleExports
 {
  private:
-
     std::map<const wchar_t*, Crawlr::Module> modules;
 
  public:
-    Crawlr::Module& addModule(const wchar_t* moduleName);
+    ModuleExports() = default;
+    ~ModuleExports() = default;
+    ModuleExports() { this->modules = {}; }
+
+    Module& addModule(const wchar_t* moduleName);
     bool mapExports(const std::vector<const char*>& exportNames);
 };
 }  // namespace Crawlr
