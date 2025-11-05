@@ -1,5 +1,6 @@
 #pragma once
 #include "Export.hpp"
+#include "Module.hpp"
 #include <map>
 #include <string>
 #include <vector>
