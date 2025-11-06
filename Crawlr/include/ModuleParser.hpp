@@ -17,14 +17,13 @@ namespace ModuleParser
         bool success;
         const std::string error;
         Module::MemoryInfo memoryInfo;
-        std::map<const std::string, Export>& exports;
-        std::map<const std::string, Syscall>& syscalls;
+        std::map<std::string, Export>& exports;
+        std::map<std::string, Syscall>& syscalls;
     };
 
     const LDR_DATA_TABLE_ENTRY* getModuleBase(const wchar_t* moduleName) noexcept;
     Module::MemoryInfo parseModuleMemory(const wchar_t* moduleName) noexcept;
-    Result parseExports(const wchar_t* moduleName, const std::vector<const std::string>& targetNames = {});
-    Result parseExportDirectory(void* moduleBase, const std::vector<const std::string>& targetNames = {});
+    Result parseExports(const Module& module, const std::vector<const std::string>& targetNames = {}) noexcept;
 
     namespace
     {

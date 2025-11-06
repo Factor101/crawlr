@@ -1,4 +1,5 @@
 #pragma once
+
 #include "./detail/NativeDefs.hpp"
 #include "Export.hpp"
 #include "Syscall.hpp"
@@ -9,8 +10,8 @@
 
 namespace Crawlr
 {
-using ExportMap  = std::map<const std::string, Crawlr::Export>;
-using SyscallMap = std::map<const std::string, Crawlr::Syscall>;
+using ExportMap  = std::map<std::string, Crawlr::Export>;
+using SyscallMap = std::map<std::string, Crawlr::Syscall>;
 
 class Module
 {
@@ -38,6 +39,7 @@ class Module
     inline const wchar_t* getModuleName() const noexcept { return this->moduleName; }
     inline ExportMap& getExports() noexcept { return this->exports; }
     inline SyscallMap& getSyscalls() noexcept { return this->syscalls; }
+    inline MemoryInfo getMemoryInfo() const noexcept { return this-> memoryInfo; }
 
     inline bool removeExport(const std::string& expName) noexcept { return this->exports.erase(expName) > 0; }
     inline bool clearExports() noexcept

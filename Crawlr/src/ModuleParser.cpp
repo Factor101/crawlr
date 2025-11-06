@@ -1,5 +1,7 @@
 #include "../include/ModuleParser.hpp"
 #include "../include/detail/NativeDefs.hpp"
+#include "../include/detail/DebugPrint.hpp"
+
 #define OFFSET(t_struct, field) (uint64_t)(&((t_struct*)nullptr)->field)
 
 namespace Crawlr
@@ -58,7 +60,42 @@ namespace ModuleParser
 
         return memoryInfo;
     }
-    Result parseExports(const wchar_t* moduleName, const std::vector<const std::string>& targetNames = {});
-    Result parseExportDirectory(void* moduleBase, const std::vector<const std::string>& targetNames = {});
+
+    Result parseExports(const Module &module, const std::vector<const std::string> &targetNames = {}) noexcept
+    {
+        const Module::MemoryInfo memInfo = module.getMemoryInfo();
+        if (memInfo.baseAddress == nullptr || memInfo.exportDirectory == nullptr)
+        {
+            return {false, std::string("Module was not correctly loaded!"), nullptr, nullptr};
+        }
+
+        const DWORD* pBase = (DWORD*)memInfo.baseAddress;
+        const IMAGE_EXPORT_DIRECTORY* pExportDir = memInfo.exportDirectory;
+        const DWORD* pAddressOfFunctionsRVA = (DWORD*)(pBase + pExportDir->AddressOfFunctions);
+        const DWORD* pAddressOfNamesRVA = (DWORD*)(pBase + pExportDir->AddressOfNames);
+        const WORD* pAddressOfNameOrdinalsRVA = (WORD*)(pBase + pExportDir->AddressOfNameOrdinals);
+
+        for (DWORD i = 0; i < pExportDir->NumberOfFunctions; ++i)
+        {
+            // function name
+            const DWORD_PTR dwFunctionNameRVA = pAddressOfNamesRVA[i];
+            if (dwFunctionNameRVA == 0)
+            {
+                continue;
+            }
+
+            char *pFunctionName = (char*)(pBase + dwFunctionNameRVA);
+            if (pFunctionName == nullptr)
+            {
+                continue;
+            }
+
+            void* pFunctionBase = (void*)(pBase + pAddressOfFunctionsRVA[pAddressOfNameOrdinalsRVA[i]]);
+            Export exp{pFunctionBase};
+
+            //TODO: Add runtime hashing for pFunctionName
+            _DEBUG_PRINTF("[+] Found Export \"%s\": 0x%p\n", pFunctionName, pFunctionBase);
+        }
+    }
 }  // namespace ModuleParser
 }  // namespace Crawlr
