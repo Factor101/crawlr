@@ -1,8 +1,9 @@
 #pragma once
 
+#include "./detail/NativeDefs.hpp"
 #include "Export.hpp"
 #include "Syscall.hpp"
-#include "./detail/NativeDefs.hpp"
+#include <concepts>
 
 namespace Crawlr
 {
@@ -15,14 +16,13 @@ typedef struct ScanResult
     void* pSyscallOpcode;
 };
 
-ScanResult scanExport(const Export& exp) noexcept;
+ScanResult scanExport(const Export& ex) noexcept;
+
+// template<typename T>
+// concept ModuleExport = std::is_base_of_v<Crawlr::Export, T>;
 
 template<typename T>
-DWORD* scanSyscallOpAddress(const T& exp) noexcept;
-}
-
-namespace
-{
-    inline
-}
-}
+    requires std::is_base_of_v<Crawlr::Export, T>
+uint8_t* findSyscallByte(const T& ex) noexcept;
+}  // namespace SyscallParser
+}  // namespace Crawlr

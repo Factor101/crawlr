@@ -18,8 +18,9 @@ class Module
  public:
     typedef struct MemoryInfo
     {
-        uint8_t* baseAddress;
+        void* baseAddress;
         IMAGE_EXPORT_DIRECTORY* exportDirectory;
+        ULONG imageSize;
     };
 
  private:
