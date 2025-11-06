@@ -13,9 +13,7 @@ class ModuleExports
     std::map<const wchar_t*, Crawlr::Module> modules;
 
  public:
-    ModuleExports() = default;
-    ~ModuleExports() = default;
-    ModuleExports() { this->modules = {}; }
+    ModuleExports() : modules{} { }
 
     Module& addModule(const wchar_t* moduleName);
     bool mapExports(const std::vector<const char*>& exportNames);

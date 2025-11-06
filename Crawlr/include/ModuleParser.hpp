@@ -15,7 +15,7 @@ namespace ModuleParser
     typedef struct Result
     {
         bool success;
-        const std::string error;
+        std::string error;
         Module::MemoryInfo memoryInfo;
         std::map<std::string, Export>& exports;
         std::map<std::string, Syscall>& syscalls;
