@@ -1,10 +1,12 @@
 #include "../include/Signature.hpp"
+#include <algorithm>
 
 namespace Crawlr
 {
 template<StringLike T>
-constexpr Signature::Signature(const T& pattern) noexcept
+constexpr Signature::Signature(const T& pattern, size_t patternSize)
 {
+    //TODO: need to be able to handle signatures format FF ?? 0A ?? BB etc
     if constexpr(std::is_same_v<std::remove_cvref_t<T>, std::string_view>)
     {
         this->pattern.reserve(pattern.size());
@@ -24,17 +26,19 @@ constexpr Signature::Signature(const T& pattern) noexcept
     }
     else if constexpr(std::is_pointer_v<std::remove_reference_t<T>>)
     {
-        // Assuming null-terminated C-string
-        // TODO: Add bounds check or restrict concept from unknown lengths
-        const char* ptr = pattern;
-        while(*ptr != '\0')
+        if(patternSize == 0)
         {
-            this->pattern.push_back(static_cast<uint8_t>(*ptr));
-            ++ptr;
+            throw std::invalid_argument("patternSize must be greater than 0 for pointer types");
+        }
+
+        this->pattern.reserve(patternSize);
+        for(size_t i = 0; i < patternSize; ++i)
+        {
+            this->pattern.push_back(static_cast<uint8_t>(pattern[i]));
         }
     }
 
-    _DEBUG_PRINTF("[i] Signature pattern %c loaded: Constexpr hit?: %s\n",
+    _DEBUG_PRINTF("[i] Signature pattern T<%c> loaded: Constexpr hit?: %s\n",
                   typeid(T).name(),
                   (std::is_constant_evaluated() ? "true" : "false"));
 }
@@ -60,6 +64,7 @@ std::vector<size_t> Signature::matchAll(const uint8_t* pData, size_t dataSize) c
 
 size_t Signature::matchFirst(const uint8_t* pData, size_t dataSize) const noexcept
 {
+    // TODO: need to respect wildcards in pattern
     auto it =
         std::search(pData,
                     pData + dataSize,
