@@ -25,7 +25,7 @@ class Signature
     Signature() = default;
 
     template<StringLike T>
-    constexpr Signature(const T& pattern) noexcept;
+    explicit constexpr Signature(const T& pattern, size_t patternSize = 0);
 
     std::vector<size_t> matchAll(const uint8_t* pData, size_t dataSize) const noexcept;
     size_t matchFirst(const uint8_t* pData, size_t dataSize) const noexcept;
