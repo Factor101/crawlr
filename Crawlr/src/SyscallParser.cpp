@@ -21,11 +21,11 @@ typedef struct ExportLocation
 ScanResult scanExport(const Export& ex) noexcept
 {
     ScanResult result{ false, false, nullptr };
-    uint8_t* pInvokeSyscall = findSyscallByte(ex);
-    DWORD ssn               = findSSN(ex, pInvokeSyscall);
-constexpr uint8_t SYSCALL_INSTRUCTION[] = "\x0F\x05";          // syscall
-constexpr uint8_t JMP_INSTRUCTION       = 0xE9;                // 4C 8B D1 B8 ?? ?? ?? ?? 0F 05
-constexpr uint8_t SYSCALL_SIGNATURE[]   = "\x4C\x8B\xD1\xB8";  // mov r10, rcx; mov eax, ?? ??
+    uint8_t* pInvokeSyscall                 = findSyscallByte(ex);
+    DWORD ssn                               = findSSN(ex, pInvokeSyscall);
+    constexpr uint8_t SYSCALL_INSTRUCTION[] = "\x0F\x05";          // syscall
+    constexpr uint8_t JMP_INSTRUCTION       = 0xE9;                // 4C 8B D1 B8 ?? ?? ?? ?? 0F 05
+    constexpr uint8_t SYSCALL_SIGNATURE[]   = "\x4C\x8B\xD1\xB8";  // mov r10, rcx; mov eax, ?? ??
 }  // namespace
 
 ScanResult scanExport(const Export& ex) noexcept
@@ -56,7 +56,7 @@ uint8_t* firstSyscallInvoke(const T& ex) noexcept
 
 DWORD findSSN(const Export& ex, uint8_t* pInvokeSyscall)
 {
-	void* pBase = ex.getBaseAddress();
+    void* pBase = ex.getBaseAddress();
     if(*(uint8_t*)pBase == JMP_INSTRUCTION)
     {
         // function is hooked
@@ -97,30 +97,6 @@ bool detectHooks(const Export& ex)
 
 __forceinline _NODISCARD DWORD Syscall::getSSN(PVOID pFunctionBase)
 {
-    constexpr BYTE syscallSignature[] = {
-        0x4c,
-        0x8b,
-        0xd1,  // mov r10, rcx
-        0xb8,  // mov eax, ? ? ? ?
-    };
-
-
-    // parse for EAX value
-
-    BYTE ssn = 0;
-    for(auto i = 0; i < 0x20; i++)
-    {
-        PBYTE pCurrentByte = (PBYTE)pFunctionBase + i;
-        if(memcmp(pCurrentByte, syscallSignature, sizeof(syscallSignature)) == 0)
-        {
-            ssn = *(PBYTE)(pCurrentByte + sizeof(syscallSignature));
-            break;
-        }
-    }
-
-
-    return ssn;
-}
     constexpr BYTE syscallSignature[] = {
         0x4c,
         0x8b,

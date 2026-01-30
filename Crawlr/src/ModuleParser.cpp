@@ -11,7 +11,8 @@ namespace ModuleParser
 using namespace CrawlrNative;
 const LDR_DATA_TABLE_ENTRY* getModuleEntry(const wchar_t* moduleName) noexcept
 {
-    static const LIST_ENTRY* pModuleListHead = getModuleListHead();
+    // PEB list head location is volatile; do not cache/make static
+    const LIST_ENTRY* pModuleListHead = getModuleListHead();
 
     for(LIST_ENTRY* node = pModuleListHead->Flink; node != pModuleListHead; node = node->Flink)
     {
@@ -20,7 +21,8 @@ const LDR_DATA_TABLE_ENTRY* getModuleEntry(const wchar_t* moduleName) noexcept
         // const LDR_DATA_TABLE_ENTRY* pTableEntry
         //      = (LDR_DATA_TABLE_ENTRY*)((uint8_t*)node - sizeof(LIST_ENTRY));
         const LDR_DATA_TABLE_ENTRY* pTableEntry =
-            (LDR_DATA_TABLE_ENTRY*)((uint8_t*)node - OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks));
+            (LDR_DATA_TABLE_ENTRY*)((uint8_t*)node
+                                    - OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks));
 
         if(pTableEntry->DllBase == nullptr)
         {
@@ -39,7 +41,7 @@ const LDR_DATA_TABLE_ENTRY* getModuleEntry(const wchar_t* moduleName) noexcept
 
 Module::MemoryInfo parseModuleMemory(const wchar_t* moduleName) noexcept
 {
-    void* dllBase;
+    const void* dllBase;
     if(const LDR_DATA_TABLE_ENTRY* pLdrEntry = getModuleEntry(moduleName); pLdrEntry != nullptr)
     {
         dllBase = pLdrEntry->DllBase;
@@ -49,13 +51,14 @@ Module::MemoryInfo parseModuleMemory(const wchar_t* moduleName) noexcept
         return { nullptr, nullptr, 0 };
     }
 
-    uint8_t* baseAddress                   = (uint8_t*)dllBase;
-    IMAGE_DOS_HEADER* pDosHeader           = (IMAGE_DOS_HEADER*)baseAddress;
-    IMAGE_NT_HEADERS* pNtHeaders           = (IMAGE_NT_HEADERS*)(baseAddress + pDosHeader->e_lfanew);
-    IMAGE_OPTIONAL_HEADER* pOptionalHeader = &pNtHeaders->OptionalHeader;
-    IMAGE_EXPORT_DIRECTORY* pExportDirectory =
+    const uint8_t* baseAddress         = (uint8_t*)dllBase;
+    const IMAGE_DOS_HEADER* pDosHeader = (IMAGE_DOS_HEADER*)baseAddress;
+    const IMAGE_NT_HEADERS* pNtHeaders = (IMAGE_NT_HEADERS*)(baseAddress + pDosHeader->e_lfanew);
+    const IMAGE_OPTIONAL_HEADER* pOptionalHeader = &pNtHeaders->OptionalHeader;
+    const IMAGE_EXPORT_DIRECTORY* pExportDirectory =
         (IMAGE_EXPORT_DIRECTORY*)(baseAddress
-                                  + pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
+                                  + pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT]
+                                        .VirtualAddress);
 
     return { dllBase, pExportDirectory, pOptionalHeader->SizeOfImage };
 }
@@ -65,16 +68,17 @@ Result parseExports(Module& module, const std::vector<const std::string>& target
     const Module::MemoryInfo memInfo = module.getMemoryInfo();
     if(memInfo.baseAddress == nullptr || memInfo.exportDirectory == nullptr)
     {
-        return { false, "Module was not correctly loaded!", memInfo, module.getExports(), module.getSyscalls() };
+        return { false, "Module was not correctly loaded!", memInfo };
     }
 
-    const DWORD* pBase                       = (DWORD*)memInfo.baseAddress;
+    const uint8_t* pBase                     = (uint8_t*)memInfo.baseAddress;
     const IMAGE_EXPORT_DIRECTORY* pExportDir = memInfo.exportDirectory;
     const DWORD* pAddressOfFunctionsRVA      = (DWORD*)(pBase + pExportDir->AddressOfFunctions);
     const DWORD* pAddressOfNamesRVA          = (DWORD*)(pBase + pExportDir->AddressOfNames);
     const DWORD* pAddressOfNameOrdinalsRVA   = (DWORD*)(pBase + pExportDir->AddressOfNameOrdinals);
+    const DWORD numberOfNames                = pExportDir->NumberOfNames;
 
-    for(DWORD i = 0; i < pExportDir->NumberOfFunctions; ++i)
+    for(DWORD i = 0; i < numberOfNames; ++i)
     {
         // function name
         const DWORD dwFunctionNameRVA = pAddressOfNamesRVA[i];
@@ -83,7 +87,7 @@ Result parseExports(Module& module, const std::vector<const std::string>& target
             continue;
         }
 
-        char* pFunctionName = (char*)(pBase + dwFunctionNameRVA);
+        const char* pFunctionName = (char*)(pBase + dwFunctionNameRVA);
         if(pFunctionName == nullptr)
         {
             continue;
