@@ -1,6 +1,5 @@
 #include "../include/Signature.hpp"
 #include <algorithm>
-#include <stdexcept>
 
 namespace Crawlr
 {
@@ -61,7 +60,7 @@ Pattern Signature::parseHexString(std::string_view pattern)
     while(i < pattern.size())
     {
         char c = pattern[i];
-        if(c == ' ')  // Skip whitespace.
+        if(c == ' ')
         {
             ++i;
             continue;
@@ -125,6 +124,11 @@ std::vector<size_t> Signature::matchAll(const uint8_t* pData, size_t dataSize) c
 
 size_t Signature::matchFirst(const uint8_t* pData, size_t dataSize) const noexcept
 {
+    if(this->pattern.empty() || dataSize < this->pattern.size())
+    {
+        return Signature::npos;
+    }
+
     // Search lambda to compare bytes with pattern, accounting for wildcards.
     // A wildcard byte == Signature::WILDCARD == std::nullopt.
     const auto byteMatchesPattern = [](uint8_t byte, PatternByte patternByte) -> bool {
@@ -137,7 +141,8 @@ size_t Signature::matchFirst(const uint8_t* pData, size_t dataSize) const noexce
                           this->pattern.end(),
                           byteMatchesPattern);
 
-    return static_cast<size_t>((it != (pData + dataSize)) ? std::distance(pData, it) : -1);
+    return (it != (pData + dataSize)) ? static_cast<size_t>(std::distance(pData, it))
+                                      : Signature::npos;
 }
 
 }  // namespace Crawlr

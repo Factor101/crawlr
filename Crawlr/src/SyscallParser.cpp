@@ -1,4 +1,5 @@
 #include "../include/SyscallParser.hpp"
+#include "../include/Signature.hpp"
 #include <type_traits>
 
 namespace Crawlr
@@ -7,26 +8,18 @@ namespace SyscallParser
 {
 namespace
 {
-constexpr uint8_t SYSCALL_INSTRUCTION[] = "\x0F\x05";          // syscall
+constexpr uint8_t SYSCALL_INSTRUCTION[] = "\x0F\x05";  // syscall
 constexpr uint8_t JMP_INSTRUCTION       = 0xE9;
-constexpr uint8_t SYSCALL_SIGNATURE[]   = "\x4C\x8B\xD1\xB8";  // mov r10, rcx; mov eax, ?? ??
+const Signature SYSCALL_SIGNATURE{
+    "4C 8B D1 B8 ?? ?? ?? ?? 0F 05"
+};  // mov r10, rcx; mov eax, ?? ?? ?? ?? syscall
 
 typedef struct ExportLocation
 {
     void* pBase;
     ULONG size;
 };
-}  // namespace
-
-ScanResult scanExport(const Export& ex) noexcept
-{
-    ScanResult result{ false, false, nullptr };
-    uint8_t* pInvokeSyscall                 = findSyscallByte(ex);
-    DWORD ssn                               = findSSN(ex, pInvokeSyscall);
-    constexpr uint8_t SYSCALL_INSTRUCTION[] = "\x0F\x05";          // syscall
-    constexpr uint8_t JMP_INSTRUCTION       = 0xE9;                // 4C 8B D1 B8 ?? ?? ?? ?? 0F 05
-    constexpr uint8_t SYSCALL_SIGNATURE[]   = "\x4C\x8B\xD1\xB8";  // mov r10, rcx; mov eax, ?? ??
-}  // namespace
+} // namespace
 
 ScanResult scanExport(const Export& ex) noexcept
 {
