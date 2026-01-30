@@ -2,8 +2,8 @@
 
 #include "./detail/NativeDefs.hpp"
 #include "Export.hpp"
-#include "Syscall.hpp"
 #include "ModuleParser.hpp"
+#include "Syscall.hpp"
 #include <map>
 #include <string>
 #include <vector>
@@ -18,8 +18,8 @@ class Module
  public:
     typedef struct MemoryInfo
     {
-        void* baseAddress;
-        IMAGE_EXPORT_DIRECTORY* exportDirectory;
+        const void* baseAddress;
+        const IMAGE_EXPORT_DIRECTORY* exportDirectory;
         ULONG imageSize;
     };
 
@@ -35,14 +35,19 @@ class Module
 
     ModuleParser::Result load() noexcept;
 
-    template<typename T> T& addExport(const std::string& expName, const T& exp) noexcept;
+    template<typename T>
+    T& addExport(const std::string& expName, const T& exp) noexcept;
 
     inline const wchar_t* getModuleName() const noexcept { return this->moduleName; }
     inline ExportMap& getExports() noexcept { return this->exports; }
     inline SyscallMap& getSyscalls() noexcept { return this->syscalls; }
-    inline MemoryInfo getMemoryInfo() const noexcept { return this-> memoryInfo; }
+    inline MemoryInfo getMemoryInfo() const noexcept { return this->memoryInfo; }
 
-    inline bool removeExport(const std::string& expName) noexcept { return this->exports.erase(expName) > 0; }
+    inline bool removeExport(const std::string& expName) noexcept
+    {
+        return this->exports.erase(expName) > 0;
+    }
+
     inline bool clearExports() noexcept
     {
         if(this->exports.empty())

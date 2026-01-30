@@ -9,5 +9,5 @@ namespace HookAnalysis
 constexpr std::vector<Signature> DEFAULT_HOOK_SIGNATURES;
 consteval void buildDefaultHookSignatures();
 
-}  // namespace HookAnaylsis
-}  // namsepace Crawlr
+}  // namespace HookAnalysis
+}  // namespace Crawlr
