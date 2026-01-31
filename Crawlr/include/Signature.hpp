@@ -94,10 +94,13 @@ class Signature
     [[nodiscard]] size_t matchFirst(const uint8_t* pData, size_t dataSize) const noexcept;
     [[nodiscard]] std::vector<size_t> matchAll(const uint8_t* pData,
                                                size_t dataSize) const noexcept;
-
+    [[nodiscard]] bool matches(const uint8_t* pData, size_t dataSize) const noexcept;
+    [[nodiscard]] bool matchesAt(const uint8_t* pData,
+                                 size_t dataSize,
+                                 size_t offset) const noexcept;
     // Getters
     [[nodiscard]] const Pattern& getPattern() const noexcept { return pattern; }
     [[nodiscard]] size_t size() const noexcept { return pattern.size(); }
-    [[nodiscard]] bool empty() const noexcept { return pattern.empty(); }
+    [[nodiscard]] bool isEmpty() const noexcept { return pattern.empty(); }
 };
 }  // namespace Crawlr

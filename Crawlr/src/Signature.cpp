@@ -97,14 +97,14 @@ std::vector<size_t> Signature::matchAll(const uint8_t* pData, size_t dataSize) c
 {
     std::vector<size_t> matches;
 
-    if(this->pattern.empty() || dataSize < this->pattern.size())
+    if(this->isEmpty() || dataSize < this->size())
     {
         return matches;
     }
 
     // Match all occurences and store match indices.
     size_t offset = 0;
-    while(offset < dataSize - this->pattern.size() + 1)
+    while(offset < dataSize - this->size() + 1)
     {
         size_t relativeMatch = this->matchFirst(pData + offset, dataSize - offset);
         if(relativeMatch == static_cast<size_t>(-1))
@@ -124,7 +124,7 @@ std::vector<size_t> Signature::matchAll(const uint8_t* pData, size_t dataSize) c
 
 size_t Signature::matchFirst(const uint8_t* pData, size_t dataSize) const noexcept
 {
-    if(this->pattern.empty() || dataSize < this->pattern.size())
+    if(this->isEmpty() || dataSize < this->size())
     {
         return Signature::npos;
     }
@@ -143,6 +143,22 @@ size_t Signature::matchFirst(const uint8_t* pData, size_t dataSize) const noexce
 
     return (it != (pData + dataSize)) ? static_cast<size_t>(std::distance(pData, it))
                                       : Signature::npos;
+}
+
+
+bool Signature::matches(const uint8_t* pData, size_t dataSize) const noexcept
+{
+    return this->matchFirst(pData, dataSize) != Signature::npos;
+}
+
+bool Signature::matchesAt(const uint8_t* pData, size_t dataSize, size_t offset) const noexcept
+{
+    if(this->isEmpty() || dataSize < this->size() + offset)
+    {
+        return false;
+    }
+
+    return this->matchFirst(pData + offset, dataSize - offset) != Signature::npos;
 }
 
 }  // namespace Crawlr

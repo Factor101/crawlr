@@ -23,6 +23,6 @@ ScanResult scanExport(const Export& ex) noexcept;
 
 template<typename T>
     requires std::is_base_of_v<Crawlr::Export, T>
-uint8_t* findSyscallByte(const T& ex) noexcept;
+uint8_t* firstSyscallInvocation(const T& ex) noexcept;
 }  // namespace SyscallParser
 }  // namespace Crawlr

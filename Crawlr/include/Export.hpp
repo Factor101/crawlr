@@ -1,19 +1,23 @@
 #pragma once
+#include <cstdint>
 
 namespace Crawlr
 {
 class Export
 {
  protected:
-    void* baseAddress;
-    ULONG size;
+    const void* baseAddress;
+    const uint32_t rva;
+    const uint32_t size;
 
  public:
     Export() = default;
-    explicit Export(void* base) : baseAddress(base) { }
-    Export(void* base, ULONG sz) : baseAddress(base), size(sz) { }
+    explicit Export(const void* base) : baseAddress(base) { }
+    Export(const void* base, const uint32_t rva, const uint32_t size)
+        : baseAddress(base), rva(rva), size(size)
+    { }
 
-    [[nodiscard]] void* getBaseAddress() const noexcept { return baseAddress; }
-    [[nodiscard]] ULONG getSize() const noexcept { return size; }
+    [[nodiscard]] const void* getBaseAddress() const noexcept { return baseAddress; }
+    [[nodiscard]] uint32_t getSize() const noexcept { return size; }
 };
 }  // namespace Crawlr

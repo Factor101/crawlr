@@ -1,6 +1,7 @@
 #include "../include/ModuleParser.hpp"
 #include "../include/detail/DebugPrint.hpp"
 #include "../include/detail/NativeDefs.hpp"
+#include <algorithm>
 
 #define OFFSET(t_struct, field) (uint64_t)(&((t_struct*)nullptr)->field)
 
@@ -39,7 +40,7 @@ const LDR_DATA_TABLE_ENTRY* getModuleEntry(const wchar_t* moduleName) noexcept
     return nullptr;
 }
 
-Module::MemoryInfo parseModuleMemory(const wchar_t* moduleName) noexcept
+Module::MemoryInfo parseModuleMemoryInfo(const wchar_t* moduleName) noexcept
 {
     const void* dllBase;
     if(const LDR_DATA_TABLE_ENTRY* pLdrEntry = getModuleEntry(moduleName); pLdrEntry != nullptr)
@@ -55,27 +56,48 @@ Module::MemoryInfo parseModuleMemory(const wchar_t* moduleName) noexcept
     const IMAGE_DOS_HEADER* pDosHeader = (IMAGE_DOS_HEADER*)baseAddress;
     const IMAGE_NT_HEADERS* pNtHeaders = (IMAGE_NT_HEADERS*)(baseAddress + pDosHeader->e_lfanew);
     const IMAGE_OPTIONAL_HEADER* pOptionalHeader = &pNtHeaders->OptionalHeader;
+    const uint32_t exportDirRVA =
+        pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+
+    if(exportDirRVA == 0)
+    {
+        return { dllBase, nullptr, pOptionalHeader->SizeOfImage };
+    }
+
     const IMAGE_EXPORT_DIRECTORY* pExportDirectory =
-        (IMAGE_EXPORT_DIRECTORY*)(baseAddress
-                                  + pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT]
-                                        .VirtualAddress);
+        (IMAGE_EXPORT_DIRECTORY*)(baseAddress + exportDirRVA);
 
     return { dllBase, pExportDirectory, pOptionalHeader->SizeOfImage };
 }
 
-Result parseExports(Module& module, const std::vector<const std::string>& targetNames = {}) noexcept
+ExportsParseResult parseExports(Module& module,
+                                const std::vector<std::string>& targetNames = {}) noexcept
+{
+    auto defaultNameFilter = [&targetNames](const char* exportName) -> bool {
+        return targetNames.empty()
+            || std::find_if(targetNames.begin(),
+                            targetNames.end(),
+                            [exportName](const std::string& name) { return name == exportName; })
+                   != targetNames.end();
+    };
+
+    return parseExports(module, defaultNameFilter);
+}
+
+ExportsParseResult parseExports(Module& module,
+                                std::function<bool(const char* exportName)> nameFilter) noexcept
 {
     const Module::MemoryInfo memInfo = module.getMemoryInfo();
     if(memInfo.baseAddress == nullptr || memInfo.exportDirectory == nullptr)
     {
-        return { false, "Module was not correctly loaded!", memInfo };
+        return { false, "Attempted to parse exports of module with invalid memory info." };
     }
 
     const uint8_t* pBase                     = (uint8_t*)memInfo.baseAddress;
     const IMAGE_EXPORT_DIRECTORY* pExportDir = memInfo.exportDirectory;
     const DWORD* pAddressOfFunctionsRVA      = (DWORD*)(pBase + pExportDir->AddressOfFunctions);
     const DWORD* pAddressOfNamesRVA          = (DWORD*)(pBase + pExportDir->AddressOfNames);
-    const DWORD* pAddressOfNameOrdinalsRVA   = (DWORD*)(pBase + pExportDir->AddressOfNameOrdinals);
+    const WORD* pAddressOfNameOrdinalsRVA    = (WORD*)(pBase + pExportDir->AddressOfNameOrdinals);
     const DWORD numberOfNames                = pExportDir->NumberOfNames;
 
     for(DWORD i = 0; i < numberOfNames; ++i)
@@ -87,18 +109,44 @@ Result parseExports(Module& module, const std::vector<const std::string>& target
             continue;
         }
 
-        const char* pFunctionName = (char*)(pBase + dwFunctionNameRVA);
-        if(pFunctionName == nullptr)
+        const char* pExportName = (char*)(pBase + dwFunctionNameRVA);
+
+        if(!nameFilter(pExportName))
         {
             continue;
         }
 
-        void* pFunctionBase = (void*)(pBase + pAddressOfFunctionsRVA[pAddressOfNameOrdinalsRVA[i]]);
-        Export exp{ pFunctionBase };
+        uint32_t rva = pAddressOfFunctionsRVA[pAddressOfNameOrdinalsRVA[i]];
 
-        //TODO: Add runtime hashing for pFunctionName
-        _DEBUG_PRINTF("[+] Found Export \"%s\": 0x%p\n", pFunctionName, pFunctionBase);
+        //TODO : Handle forwarded exports (validate rva within export dir range)
+        void* pEntryBase = (void*)(pBase + rva);
+
+        // Calculate the size of the export function.
+        // We cannot simply calculate against i + 1 since AddressOfFunctions is
+        // indexed by ordinal, not by memory location.
+        uint32_t nextHighestRVA = memInfo.imageSize;  // Default to image size
+        for(DWORD j = 0; j < pExportDir->NumberOfFunctions; ++j)
+        {
+            uint32_t candidateRVA = pAddressOfFunctionsRVA[j];
+            if(candidateRVA > rva && candidateRVA < nextHighestRVA)
+            {
+                nextHighestRVA = candidateRVA;
+            }
+        }
+        uint32_t exportSize = nextHighestRVA - rva;
+
+        //TODO: Add runtime hashing for pExportName
+        module.addExport(std::string(pExportName), Export{ pEntryBase, rva, exportSize });
+        _DEBUG_PRINTF("[+] Found Export \"%s\": 0x%p Size 0x%X\n",
+                      pExportName,
+                      pEntryBase,
+                      exportSize);
     }
+
+    return { true, "" };
 }
+
 }  // namespace ModuleParser
 }  // namespace Crawlr
+
+#undef OFFSET
