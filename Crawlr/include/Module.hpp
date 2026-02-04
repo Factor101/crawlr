@@ -35,7 +35,6 @@ class Module
     ExportMap exports;
     SyscallMap syscalls;
 
-
  public:
     Module(const wchar_t* moduleName) : moduleName(moduleName), exports(), syscalls() { }
 

@@ -137,10 +137,6 @@ uint32_t calculateExportSize(uint32_t rva,
     return nextHighestRVA - rva;
 }
 
-}  // namespace
-
-using namespace CrawlrNative;
-
 const LDR_DATA_TABLE_ENTRY* getModuleEntry(const wchar_t* moduleName) noexcept
 {
     // PEB list head location is volatile; do not cache/make static
@@ -167,6 +163,9 @@ const LDR_DATA_TABLE_ENTRY* getModuleEntry(const wchar_t* moduleName) noexcept
 
     return nullptr;
 }
+}  // namespace
+
+using namespace CrawlrNative;
 
 Module::MemoryInfo parseModuleMemoryInfo(const wchar_t* moduleName) noexcept
 {

@@ -26,11 +26,11 @@ typedef struct ExportsParseResult
     std::string error;
 };
 
-const LDR_DATA_TABLE_ENTRY* getModuleEntry(const wchar_t* moduleName) noexcept;
 Module::MemoryInfo parseModuleMemoryInfo(const wchar_t* moduleName) noexcept;
 
 ExportsParseResult parseExports(Module& module,
                                 const std::vector<std::string>& targetNames = {}) noexcept;
+
 ExportsParseResult parseExports(Module& module,
                                 std::function<bool(const char* exportName)> nameFilter) noexcept;
 namespace
