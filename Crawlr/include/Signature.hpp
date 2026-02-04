@@ -20,6 +20,8 @@ template<typename T>
 concept RuntimeString = std::is_same_v<std::decay_t<T>, std::string>
                      || std::is_same_v<std::decay_t<T>, std::string_view>;
 
+namespace
+{
 class ValidatedPattern
 {
  private:
@@ -55,6 +57,7 @@ class ValidatedPattern
     constexpr std::string_view get() const noexcept { return pattern; }
     constexpr operator std::string_view() const noexcept { return pattern; }
 };
+}  // namespace
 
 class Signature
 {

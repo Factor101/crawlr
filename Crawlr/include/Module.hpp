@@ -24,7 +24,9 @@ class Module
     {
         const void* baseAddress;
         const IMAGE_EXPORT_DIRECTORY* exportDirectory;
-        ULONG imageSize;
+        uint32_t imageSize;
+        uint32_t exportDirRVA;
+        uint32_t exportDirSize;
     };
 
  private:
