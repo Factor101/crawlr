@@ -21,7 +21,7 @@ namespace
  * @return true If the range is valid.
  * @return false Otherwise.
  */
-bool isValidRvaRange(uint32_t rva, uint32_t size, uint32_t imageSize) noexcept
+inline bool isValidRvaRange(uint32_t rva, uint32_t size, uint32_t imageSize) noexcept
 {
     return rva < imageSize && size <= (imageSize - rva);
 }
