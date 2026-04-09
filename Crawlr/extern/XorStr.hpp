@@ -11,10 +11,6 @@
 #define XORSTR_FORCEINLINE __attribute__((always_inline)) inline
 #endif
 
-namespace Crawlr
-{
-namespace XorStr
-{
 namespace
 {
 XORSTR_FORCEINLINE consteval uint64_t key64()
@@ -99,5 +95,3 @@ class XorStr
         return xorStr.decrypt();                                       \
     }())
 }  // namespace
-}  // namespace XorStr
-}  // namespace Crawlr
