@@ -55,7 +55,6 @@ class XorStr
 {
  private:
     static constexpr size_t BUFFER_CHUNKS = (N / 8) + (N % 8 != 0);
-    static constexpr size_t BUFFER_SIZE   = BUFFER_CHUNKS * 8;
     static constexpr uint64_t KEY         = key64();
     uint64_t buffer[BUFFER_CHUNKS]{};  // needs to be aligned if going SIMD route
 
