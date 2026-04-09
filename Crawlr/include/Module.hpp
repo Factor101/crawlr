@@ -40,9 +40,7 @@ class Module
 
     [[nodiscard]] ModuleParser::ModuleParseResult load() noexcept;
 
-    template<typename T>  // pass either Export or Syscall, only place into syscall if T is Syscall
-        requires std::is_base_of_v<Crawlr::Export, T>
-    [[nodiscard]] T& addExport(std::string expName, const T& exp) noexcept;
+    [[nodiscard]] Export& addExport(std::string expName, const Export& exp) noexcept;
 
     [[nodiscard]] inline const wchar_t* getModuleName() const noexcept { return this->moduleName; }
     [[nodiscard]] inline ExportMap& getExports() noexcept { return this->exports; }

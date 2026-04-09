@@ -242,6 +242,7 @@ ExportsParseResult parseExports(Module& module,
     return parseExports(module, defaultNameFilter);
 }
 
+
 ExportsParseResult parseExports(Module& module,
                                 std::function<bool(const char* exportName)> nameFilter) noexcept
 {
