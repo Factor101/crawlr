@@ -10,12 +10,15 @@ namespace Crawlr
 class ModuleExports
 {
  private:
-    std::map<std::wstring, Crawlr::Module> modules;
+    std::map<std::wstring, Module> modules;
 
  public:
     ModuleExports() : modules{} { }
 
     Module& addModule(const wchar_t* moduleName);
-    bool mapExports(const std::vector<std::string>& exportNames); // TOOD: change exportNames type to span<const stview>
+    ModuleParser::ExportsParseResult mapExports(Module& module,
+                                                const std::vector<std::string>& exportNames = {});
+    ModuleParser::ExportsParseResult mapExports(const std::wstring moduleName,
+                                                const std::vector<std::string>& exportNames = {});
 };
 }  // namespace Crawlr

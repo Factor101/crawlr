@@ -2,6 +2,7 @@
 #include "include/Export.hpp"
 #include "include/Module.hpp"
 #include "include/ModuleExports.hpp"
+#include "include/ModuleParser.hpp"
 #include <expected>
 
 namespace Crawlr

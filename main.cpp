@@ -11,5 +11,5 @@ int main()
         return 1;
     }
 
-    auto exportMap = modules.mapExports(*ntdll, { "NtOpenProcess", "NtVirtualAllocEx" });
+    auto exportMap = modules.mapExports(ntdll, { "NtOpenProcess", "NtVirtualAllocEx" });
 }
