@@ -16,9 +16,5 @@ class ModuleExports
     ModuleExports() : modules{} { }
 
     Module& addModule(const wchar_t* moduleName);
-    ModuleParser::ExportsParseResult mapExports(Module& module,
-                                                const std::vector<std::string>& exportNames = {});
-    ModuleParser::ExportsParseResult mapExports(const std::wstring moduleName,
-                                                const std::vector<std::string>& exportNames = {});
 };
 }  // namespace Crawlr

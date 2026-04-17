@@ -1,4 +1,10 @@
 .github
 .vscode
-build
 .vs
+build
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+*.vxproj*
+*.vcxproj*
+lib

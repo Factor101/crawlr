@@ -27,7 +27,7 @@ class ValidatedPattern
  private:
     std::string_view pattern;
 
-    static consteval bool isValidChar(char c)  // clang-format off
+    static constexpr bool isValidChar(char c)  // clang-format off
     {
         return c == '?' || c == ' '
             || (c >= '0' && c <= '9')
@@ -35,22 +35,22 @@ class ValidatedPattern
             || (c >= 'a' && c <= 'f');  // clang-format on
     }
 
-    static consteval std::string_view validate(std::string_view pattern)
+    static constexpr std::string_view validate(std::string_view p)
     {
-        for(size_t i = 0; i < pattern.size(); ++i)
+        for(size_t i = 0; i < p.size(); ++i)
         {
-            if(!isValidChar(pattern[i]))
+            if(!isValidChar(p[i]))
             {
                 throw std::invalid_argument("Invalid character found in hex signature pattern");
             }
         }
 
-        return pattern;
+        return p;
     }
 
  public:
     template<size_t N>
-    consteval ValidatedPattern(const char (&pattern)[N])
+    constexpr ValidatedPattern(const char (&pattern)[N])
         : pattern(validate(std::string_view(pattern, N - 1)))
     { }
 
@@ -72,7 +72,7 @@ class Signature
 
     Signature() = default;
 
-    // Compile-time validated for string literals.
+    // Validated for char-array inputs (string literals and char arrays).
     template<size_t N>
     Signature(const char (&pattern)[N]) : pattern(parseHexString(ValidatedPattern(pattern).get()))
     { }

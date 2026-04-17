@@ -20,7 +20,7 @@ using SyscallMap = std::map<std::string, Crawlr::Syscall>;
 class Module
 {
  public:
-    typedef struct MemoryInfo
+    struct MemoryInfo
     {
         const void* baseAddress;
         const IMAGE_EXPORT_DIRECTORY* exportDirectory;
@@ -38,9 +38,9 @@ class Module
  public:
     Module(const wchar_t* moduleName) : moduleName(moduleName), exports(), syscalls() { }
 
-    [[nodiscard]] ModuleParser::ModuleParseResult load() noexcept;
-    [[nodiscard]] Export& addExport(std::string expName, const Export& exp) noexcept;
+    Export& addExport(std::string expName, const Export& exp) noexcept;
 
+    [[nodiscard]] ModuleParser::ModuleParseResult load() noexcept;
     [[nodiscard]] inline const wchar_t* getModuleName() const noexcept { return this->moduleName; }
     [[nodiscard]] inline ExportMap& getExports() noexcept { return this->exports; }
     [[nodiscard]] inline SyscallMap& getSyscalls() noexcept { return this->syscalls; }

@@ -11,8 +11,6 @@ class Export
     const uint32_t size;
 
  public:
-    Export() = default;
-    explicit Export(void* base) : baseAddress(base) { }
     Export(void* base, const uint32_t rva, const uint32_t size)
         : baseAddress(base), rva(rva), size(size)
     { }

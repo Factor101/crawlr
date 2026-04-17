@@ -9,8 +9,8 @@ class Syscall : public Export
     DWORD ssn;
 
  public:
-    Syscall() = default;
-    explicit Syscall(void* base) : Export(base) { }
-    Syscall(void* base, DWORD ssn) : Export(base), ssn(ssn) { }
+    Syscall(void* base, const uint32_t rva, const uint32_t size, DWORD ssn = 0)
+        : Export(base, rva, size), ssn(ssn)
+    { }
 };
 }  // namespace Crawlr

@@ -13,14 +13,14 @@ namespace ModuleParser
 {
 using namespace CrawlrNative;
 
-typedef struct ModuleParseResult
+struct ModuleParseResult
 {
     bool success;
     std::string error;
     Module::MemoryInfo memoryInfo;
 };
 
-typedef struct ExportsParseResult
+struct ExportsParseResult
 {
     bool success;
     std::string error;

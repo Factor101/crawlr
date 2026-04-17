@@ -1,15 +1,20 @@
 #pragma once
 #ifndef NATIVE_H
-    #define NATIVE_H
+#define NATIVE_H
 
-    #define WIN32_LEAN_AND_MEAN
-    #include <cstdint>
-    #include <ntdef.h>
-    #include <windef.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif  // !WIN32_LEAN_AND_MEAN
 
-    #ifndef PVOID
-        #define PVOID void*
-    #endif  // !PVOID
+#include <cstdint>
+#include <ntdef.h>
+#include <windef.h>
+
+#ifndef PVOID
+#define PVOID void*
+#endif  // !PVOID
+
+
 
 namespace CrawlrNative
 {
@@ -124,17 +129,17 @@ typedef struct _PS_CREATE_INFO
 } PS_CREATE_INFO, *PPS_CREATE_INFO;
 
 
-    #ifndef InitializeObjectAttributes
-        #define InitializeObjectAttributes(p, n, a, r, s)                  \
-            {                                                              \
-                (p)->Length                   = sizeof(OBJECT_ATTRIBUTES); \
-                (p)->RootDirectory            = r;                         \
-                (p)->Attributes               = a;                         \
-                (p)->ObjectName               = n;                         \
-                (p)->SecurityDescriptor       = s;                         \
-                (p)->SecurityQualityOfService = NULL;                      \
-            }
-    #endif
+#ifndef InitializeObjectAttributes
+#define InitializeObjectAttributes(p, n, a, r, s)                  \
+    {                                                              \
+        (p)->Length                   = sizeof(OBJECT_ATTRIBUTES); \
+        (p)->RootDirectory            = r;                         \
+        (p)->Attributes               = a;                         \
+        (p)->ObjectName               = n;                         \
+        (p)->SecurityDescriptor       = s;                         \
+        (p)->SecurityQualityOfService = NULL;                      \
+    }
+#endif
 
 typedef struct _CLIENT_ID
 {
@@ -267,11 +272,11 @@ typedef struct _CURDIR
     HANDLE Handle;
 } CURDIR, *PCURDIR;
 
-    #define RTL_USER_PROC_CURDIR_CLOSE 0x00000002
-    #define RTL_USER_PROC_CURDIR_INHERIT 0x00000003
+#define RTL_USER_PROC_CURDIR_CLOSE 0x00000002
+#define RTL_USER_PROC_CURDIR_INHERIT 0x00000003
 
-    #define RTL_MAX_DRIVE_LETTERS 32
-    #define RTL_DRIVE_LETTER_VALID (USHORT)0x0001
+#define RTL_MAX_DRIVE_LETTERS 32
+#define RTL_DRIVE_LETTER_VALID (USHORT)0x0001
 
 typedef struct _RTL_DRIVE_LETTER_CURDIR
 {

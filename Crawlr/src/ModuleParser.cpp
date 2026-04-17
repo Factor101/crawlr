@@ -229,7 +229,7 @@ Module::MemoryInfo parseModuleMemoryInfo(const wchar_t* moduleName) noexcept
 }
 
 ExportsParseResult parseExports(Module& module,
-                                const std::vector<std::string>& targetNames = {}) noexcept
+                                const std::vector<std::string>& targetNames) noexcept
 {
     auto defaultNameFilter = [&targetNames](const char* exportName) -> bool {
         return targetNames.empty()

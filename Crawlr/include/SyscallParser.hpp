@@ -8,7 +8,7 @@ namespace Crawlr
 {
 namespace SyscallParser
 {
-typedef struct ScanResult
+struct ScanResult
 {
     bool isSyscall;
     bool matchesUnhookedSyscall;
