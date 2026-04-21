@@ -5,6 +5,8 @@ add_library(crawlr STATIC
     src/Signature.cpp
     src/SyscallParser.cpp
     src/HookAnalysis.cpp
+    src/SyscallLibrary.cpp
+    src/Syscall.cpp
 )
 
 target_include_directories(crawlr

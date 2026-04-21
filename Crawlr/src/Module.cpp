@@ -18,11 +18,12 @@ ModuleParser::ModuleParseResult Module::load() noexcept
 Export& Module::addExport(std::string expName, const Export& exp) noexcept
 {
     auto result = this->exports.emplace(expName, exp);
-    if constexpr(typeid(exp) == typeid(Crawlr::Syscall))
-    {
-        this->syscalls.emplace(expName, &result.first->second);
-    }
+    return result.first->second;
+}
 
+Syscall& Module::addSyscall(std::string expName, const Syscall& sc) noexcept
+{
+    auto result = this->syscalls.emplace(expName, sc);
     return result.first->second;
 }
 }  // namespace Crawlr
