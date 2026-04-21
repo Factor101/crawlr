@@ -13,7 +13,7 @@ struct ScanResult
     bool isSyscall;
     bool matchesUnhookedSyscall;
     void* pSyscallOpcode;
-    DWORD syscallNumber;  // aka SSN
+    uint32_t syscallNumber;  // aka SSN
 };
 
 

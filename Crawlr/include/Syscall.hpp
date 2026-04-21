@@ -22,8 +22,12 @@ class Syscall : public Export
     void* pSyscallOpcode;
 
  public:
-    Syscall(void* base, const uint32_t rva, const uint32_t size, uint32_t ssn = 0)
-        : Export(base, rva, size), ssn(ssn)
+    Syscall(void* base,
+            const uint32_t rva,
+            const uint32_t size,
+            uint32_t ssn         = 0,
+            void* pSyscallOpcode = nullptr)
+        : Export(base, rva, size), ssn(ssn), pSyscallOpcode(pSyscallOpcode)
     { }
 
     template<typename Return = uintptr_t, typename... Args>
@@ -35,9 +39,10 @@ class Syscall : public Export
         size_t i = 0;
         ((args[i++] = static_cast<uintptr_t>(args)), ...);  // pack args into array
 
-        uintptr_t invokeResult= invokeSyscall(this->ssn,
+        uintptr_t invokeResult = invokeSyscall(this->ssn,
                                                this->pSyscallOpcode,
-                                               a[0],a[1],
+                                               a[0],
+                                               a[1],
                                                a[2],
                                                a[3],
                                                a[4],

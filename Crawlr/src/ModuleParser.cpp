@@ -1,4 +1,5 @@
 #include "../include/ModuleParser.hpp"
+#include "../include/SyscallParser.hpp"
 #include "../include/detail/DebugPrint.hpp"
 #include "../include/detail/NativeDefs.hpp"
 #include <algorithm>
@@ -329,11 +330,28 @@ ExportsParseResult parseExports(Module& module,
         // const_cast is needed in case we want to later remap the export's base address.
         void* pEntryBase = reinterpret_cast<void*>(const_cast<uint8_t*>(pBase + rva));
 
-        module.addExport(std::string(pExportName), Export{ pEntryBase, rva, exportSize });
-        _DEBUG_PRINTF("[+] Found Export \"%s\": 0x%p Size 0x%X\n",
-                      pExportName,
-                      pEntryBase,
-                      exportSize);
+        //TODO: Handle hooked syscalls
+        Export exp{ pEntryBase, rva, exportSize };
+        if(SyscallParser::ScanResult scan = SyscallParser::scanExport(exp);
+           scan.isSyscall && scan.matchesUnhookedSyscall)
+        {
+            module.addSyscall(
+                std::string(pExportName),  // TODO: runtime string encryption
+                Syscall{ pEntryBase, rva, exportSize, scan.syscallNumber, scan.pSyscallOpcode });
+
+            _DEBUG_PRINTF("[+] Found Syscall \"%s\": SSN=0x%X opcode=%p\n",
+                          pExportName,
+                          scan.syscallNumber,
+                          scan.pSyscallOpcode);
+        }
+        else
+        {
+            module.addExport(std::string(pExportName), );
+            _DEBUG_PRINTF("[+] Found Export \"%s\": 0x%p Size 0x%X\n",
+                          pExportName,
+                          pEntryBase,
+                          exportSize);
+        }
     }
 
     return { true, "" };
