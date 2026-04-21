@@ -16,7 +16,9 @@ int main()
     std::wcout << L"Base Address: " << meminfo.baseAddress << std::endl;
     std::wcout << L"Image Size: " << meminfo.imageSize << " bytes" << std::endl;
 
-    auto exports = Crawlr::ModuleParser::parseExports(ntdll, { "NtOpenProcess", "NtAllocateVirtualMemory" });
+    auto exports =
+        Crawlr::ModuleParser::parseExports(ntdll, { "NtOpenProcess", "NtAllocateVirtualMemory" });
+
     if(!exports.success)
     {
         std::cout << "ERR: " << exports.error << std::endl;

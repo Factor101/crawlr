@@ -7,7 +7,7 @@ namespace HookAnalysis
 void buildDefaultSignatureList()
 {
     knownHooks = {
-        { HookType::EDR_BITDEFENDER, Signature("E9 ?? ?? ?? ??") }
+        { HookType::GENERIC_JMP, Signature("E9 ?? ?? ?? ??") }
     };
 }
 }  // namespace HookAnalysis

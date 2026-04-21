@@ -9,6 +9,7 @@ namespace HookAnalysis
 enum class HookType
 {
     EDR_BITDEFENDER,
+    EDR_MALWAREBYTES,
     GENERIC_JMP
 };
 
@@ -17,6 +18,7 @@ using SignatureMap = std::unordered_map<HookType, Signature>;
 SignatureMap knownHooks;
 
 void buildDefaultSignatureList();
+
 
 }  // namespace HookAnalysis
 }  // namespace Crawlr

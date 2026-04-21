@@ -39,7 +39,7 @@ class Module
     Module(const wchar_t* moduleName) : moduleName(moduleName), exports(), syscalls() { }
 
     Export& addExport(std::string expName, const Export& exp) noexcept;
-    Syscall& addSyscall(std::string expName, const Syscall& sc) noexcept;
+    Syscall& Module::addSyscall(std::string expName, const Syscall& sc) noexcept;
 
     [[nodiscard]] ModuleParser::ModuleParseResult load() noexcept;
     [[nodiscard]] inline const wchar_t* getModuleName() const noexcept { return this->moduleName; }
