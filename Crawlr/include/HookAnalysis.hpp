@@ -14,9 +14,6 @@ enum class HookType
 };
 
 using SignatureMap = std::unordered_map<HookType, Signature>;
-
-SignatureMap knownHooks;
-
 void buildDefaultSignatureList();
 
 

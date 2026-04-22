@@ -9,7 +9,7 @@ extern "C" __attribute__((naked)) uintptr_t invokeSyscall(
     asm(R"(
         mov eax, ecx         ; eax = ssn (x64 syscall abi mandates DWORD ssn -> eax)
         mov r11, rdx         ; r11 = pSyscallOpcode
-        mov r10, r8          ; r10 = a1 (caller-preserved)
+        mov r10, r8          ; r10 = a1
         mov rdx, r9          ; rdx = a2
         mov r8, [rsp+0x28]   ;  r8 = a3
         mov r9, [rsp+0x30]   ;  r9 = a4

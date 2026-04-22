@@ -7,8 +7,8 @@ class Export
 {
  protected:
     void* baseAddress;
-    const uint32_t rva;
-    const uint32_t size;
+    uint32_t rva;
+    uint32_t size;
 
  public:
     Export(void* base, const uint32_t rva, const uint32_t size)
