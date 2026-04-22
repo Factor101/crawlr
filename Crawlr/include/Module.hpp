@@ -25,24 +25,24 @@ class Module
         const void* baseAddress;
         const IMAGE_EXPORT_DIRECTORY* exportDirectory;
         uint32_t imageSize;
-        uint32_t exportDirRVA;
+        uint32_t exportDirRva;
         uint32_t exportDirSize;
     };
 
  private:
-    const wchar_t* moduleName;
+    std::wstring moduleName;
     MemoryInfo memoryInfo;
     ExportMap exports;
     SyscallMap syscalls;
 
  public:
-    Module(const wchar_t* moduleName) : moduleName(moduleName), exports(), syscalls() { }
+    Module(std::wstring moduleName) : moduleName(moduleName), exports(), syscalls() { }
 
     Export& addExport(std::string expName, const Export& exp) noexcept;
-    Syscall& Module::addSyscall(std::string expName, const Syscall& sc) noexcept;
+    Syscall& addSyscall(std::string expName, const Syscall& sc) noexcept;
 
     [[nodiscard]] ModuleParser::ModuleParseResult load() noexcept;
-    [[nodiscard]] inline const wchar_t* getModuleName() const noexcept { return this->moduleName; }
+    [[nodiscard]] inline std::wstring getModuleName() const noexcept { return this->moduleName; }
     [[nodiscard]] inline ExportMap& getExports() noexcept { return this->exports; }
     [[nodiscard]] inline SyscallMap& getSyscalls() noexcept { return this->syscalls; }
     [[nodiscard]] inline MemoryInfo getMemoryInfo() const noexcept { return this->memoryInfo; }

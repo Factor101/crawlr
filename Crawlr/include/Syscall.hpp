@@ -35,20 +35,20 @@ class Syscall : public Export
     {
         static_assert(sizeof...(Args) <= 8, "Syscall must be invoked with <= 8 arguments");
 
-        std::array<uintptr_t, 8> args{};
+        std::array<uintptr_t, 8> arr{};
         size_t i = 0;
-        ((args[i++] = static_cast<uintptr_t>(args)), ...);  // pack args into array
+        ((arr[i++] = static_cast<uintptr_t>(args)), ...);  // pack args into array
 
         uintptr_t invokeResult = invokeSyscall(this->ssn,
                                                this->pSyscallOpcode,
-                                               a[0],
-                                               a[1],
-                                               a[2],
-                                               a[3],
-                                               a[4],
-                                               a[5],
-                                               a[6],
-                                               a[7]);
+                                               arr[0],
+                                               arr[1],
+                                               arr[2],
+                                               arr[3],
+                                               arr[4],
+                                               arr[5],
+                                               arr[6],
+                                               arr[7]);
 
         return static_cast<Return>(invokeResult);
     }
