@@ -12,8 +12,255 @@ namespace Crawlr
 {
 namespace ModuleParser
 {
+using namespace CrawlrNative;
+
+std::expected<Module::MemoryInfo, std::string> parseModuleMemoryInfo(
+    const std::wstring& moduleName) noexcept
+{
+    Module::MemoryInfo memInfo{};
+    if(const LDR_DATA_TABLE_ENTRY* pLdrEntry = getModuleEntry(moduleName);
+       pLdrEntry != nullptr)
+    {
+        memInfo.baseAddress = pLdrEntry->DllBase;
+    }
+    else
+    {
+        const std::wstring werr =
+            std::format(L"Could not locate base address of '{}'", moduleName);
+        return std::unexpected(std::string(werr.begin(), werr.end()));
+    }
+
+    const uint8_t* baseAddress = reinterpret_cast<const uint8_t*>(memInfo.baseAddress);
+    const IMAGE_DOS_HEADER* pDosHeader =
+        reinterpret_cast<const IMAGE_DOS_HEADER*>(baseAddress);
+
+    // Validate DOS header.
+    if(pDosHeader->e_magic != IMAGE_DOS_SIGNATURE
+       || pDosHeader->e_lfanew < sizeof(IMAGE_DOS_HEADER))
+    {
+        const std::wstring werr =
+            std::format(L"Module '{}' contained invalid DOS headers", moduleName);
+        return std::unexpected(std::string(werr.begin(), werr.end()));
+    }
+
+    // Validate NT headers.
+    const IMAGE_NT_HEADERS* pNtHeaders =
+        reinterpret_cast<const IMAGE_NT_HEADERS*>(baseAddress + pDosHeader->e_lfanew);
+    if(pNtHeaders->Signature != IMAGE_NT_SIGNATURE)
+    {
+        const std::wstring werr =
+            std::format(L"Module '{}' contained invalid NT headers", moduleName);
+        return std::unexpected(std::string(werr.begin(), werr.end()));
+    }
+
+    // Validate Optional header.
+    const IMAGE_OPTIONAL_HEADER* pOptionalHeader = &pNtHeaders->OptionalHeader;
+    if(pOptionalHeader->Magic != IMAGE_NT_OPTIONAL_HDR_MAGIC
+       || pOptionalHeader->SizeOfImage == 0)
+    {
+        const std::wstring werr =
+            std::format(L"Module '{}' contained an invalid optional header", moduleName);
+        return std::unexpected(std::string(werr.begin(), werr.end()));
+    }
+
+    // Validate image size.
+    memInfo.imageSize = pOptionalHeader->SizeOfImage;
+    if(pDosHeader->e_lfanew >= memInfo.imageSize
+       || (static_cast<uint64_t>(pDosHeader->e_lfanew) + sizeof(IMAGE_NT_HEADERS))
+              > memInfo.imageSize)
+    {
+        const std::wstring werr =
+            std::format(L"Module '{}' has invalid bounds", moduleName);
+        return std::unexpected(std::string(werr.begin(), werr.end()));
+    }
+
+    // Try to get export directory info.
+    ReadExportDirResult resExportDir =
+        tryGetExportDirectoryInfo(baseAddress, memInfo.imageSize, moduleName);
+
+    if(!resExportDir.success)
+    {
+        return std::unexpected(resExportDir.errorTemplate);
+    }
+
+    memInfo.exportDirRva    = resExportDir.exportDirRva;
+    memInfo.exportDirSize   = resExportDir.exportDirSize;
+    memInfo.exportDirectory = reinterpret_cast<const IMAGE_EXPORT_DIRECTORY*>(
+        baseAddress + resExportDir.exportDirRva);
+
+    return memInfo;
+}
+
+std::expected<void, std::string> parseExports(
+    Module& module,
+    const std::vector<std::string>& targetNames) noexcept
+{
+    auto defaultNameFilter = [&targetNames](const char* exportName) -> bool {
+        return targetNames.empty()
+            || std::find_if(
+                   targetNames.begin(),
+                   targetNames.end(),
+                   [exportName](const std::string& name) { return name == exportName; })
+                   != targetNames.end();
+    };
+
+    return parseExports(module, defaultNameFilter);
+}
+
+
+std::expected<void, std::string> parseExports(
+    Module& module,
+    std::function<bool(const char* exportName)> nameFilter) noexcept
+{
+    //TODO : Handle forwarded exports properly
+    //TODO: Add runtime hashing for pExportName
+    const Module::MemoryInfo memInfo = module.getMemoryInfo();
+    if(memInfo.baseAddress == nullptr || memInfo.exportDirectory == nullptr)
+    {
+        return std::unexpected(std::string(
+            "Attempted to parse exports of module with invalid memory info."));
+    }
+
+    const uint8_t* pBase = reinterpret_cast<const uint8_t*>(memInfo.baseAddress);
+
+    // Validate export directory tables' bounds.
+    if(!isValidRvaTableRange(memInfo.exportDirectory->AddressOfFunctions,
+                             memInfo.exportDirectory->NumberOfFunctions,
+                             sizeof(DWORD),
+                             memInfo.imageSize)
+       || !isValidRvaTableRange(memInfo.exportDirectory->AddressOfNames,
+                                memInfo.exportDirectory->NumberOfNames,
+                                sizeof(DWORD),
+                                memInfo.imageSize)
+       || !isValidRvaTableRange(memInfo.exportDirectory->AddressOfNameOrdinals,
+                                memInfo.exportDirectory->NumberOfNames,
+                                sizeof(WORD),
+                                memInfo.imageSize))
+    {
+        return std::unexpected(
+            std::string("Export directory tables are out of image bounds."));
+    }
+
+    const DWORD* pAddressOfFunctions = reinterpret_cast<const DWORD*>(
+        pBase + memInfo.exportDirectory->AddressOfFunctions);
+    const DWORD* pAddressOfNames =
+        reinterpret_cast<const DWORD*>(pBase + memInfo.exportDirectory->AddressOfNames);
+    const WORD* pAddressOfNameOrdinals = reinterpret_cast<const WORD*>(
+        pBase + memInfo.exportDirectory->AddressOfNameOrdinals);
+    const DWORD numberOfNames = memInfo.exportDirectory->NumberOfNames;
+
+    // We cannot simply calculate against i + 1 since AddressOfFunctions is
+    // indexed by ordinal, not by memory location. Therefore, we build a sorted
+    // list of all export RVAs to calculate export sizes correctly.
+    const std::vector<uint32_t> sortedExportRVAs =
+        getSortedExportRVAs(pBase, memInfo.exportDirectory, memInfo.imageSize);
+
+    for(DWORD i = 0; i < numberOfNames; ++i)
+    {
+        // Get and validate null-terminated export name cstring.
+        const DWORD functionNameRVA = pAddressOfNames[i];
+        if(functionNameRVA == 0
+           || !isValidCStringRva(functionNameRVA, pBase, memInfo.imageSize))
+        {
+            continue;
+        }
+
+        const char* pExportName = reinterpret_cast<const char*>(pBase + functionNameRVA);
+
+        if(!nameFilter(pExportName))
+        {
+            continue;
+        }
+
+        // Get ordinal and validate that is within bounds.
+        const WORD ordinal = pAddressOfNameOrdinals[i];
+        if(ordinal >= memInfo.exportDirectory->NumberOfFunctions)
+        {
+            continue;
+        }
+
+        // Get function's RVA and validate.
+        uint32_t rva = pAddressOfFunctions[ordinal];
+        if(rva == 0 || rva >= memInfo.imageSize)
+        {
+            continue;
+        }
+
+        // Perform a rudimentary check for forwarded exports. //TODO: Handle properly.
+        if(memInfo.exportDirSize != 0 && rva >= memInfo.exportDirRva
+           && rva < (memInfo.exportDirRva + memInfo.exportDirSize))
+        {
+            continue;  // forwarded export
+        }
+
+        uint32_t exportSize =
+            calculateExportSize(rva, sortedExportRVAs, memInfo.imageSize);
+
+        // const_cast is needed in case we want to later remap the export's base address.
+        void* pEntryBase = reinterpret_cast<void*>(const_cast<uint8_t*>(pBase + rva));
+
+        //TODO: Handle hooked syscalls properly
+        Export exp{ pEntryBase, rva, exportSize };
+        if(SyscallParser::ScanResult scan = SyscallParser::scanExport(exp);
+           scan.isSyscall && scan.matchesUnhookedSyscall)
+        {
+            module.addSyscall(
+                std::string(pExportName),  // TODO: runtime string encryption
+                Syscall{ pEntryBase,
+                         rva,
+                         exportSize,
+                         scan.syscallNumber,
+                         scan.pSyscallOpcode });
+
+            _DEBUG_PRINTF("[+] Found Syscall \"%s\": SSN=0x%X opcode=%p\n",
+                          pExportName,
+                          scan.syscallNumber,
+                          scan.pSyscallOpcode);
+        }
+        else
+        {
+            module.addExport(std::string(pExportName), exp);
+            _DEBUG_PRINTF("[+] Found Export \"%s\": 0x%p Size 0x%X\n",
+                          pExportName,
+                          pEntryBase,
+                          exportSize);
+        }
+    }
+
+    return std::expected<void, std::string>{};
+}
+
 namespace
 {
+const LDR_DATA_TABLE_ENTRY* getModuleEntry(const std::wstring& moduleName) noexcept
+{
+    // PEB list head location is volatile; do not cache/make static
+    const LIST_ENTRY* pModuleListHead = getModuleListHead();
+
+    for(LIST_ENTRY* node = pModuleListHead->Flink; node != pModuleListHead;
+        node             = node->Flink)
+    {
+        // InMemoryOrderLinks = 2nd of 1st 2 entries type LIST_ENTRY;
+        //      = CONTAINING_RECORD(node, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks);
+        const LDR_DATA_TABLE_ENTRY* pTableEntry =
+            reinterpret_cast<const LDR_DATA_TABLE_ENTRY*>(
+                reinterpret_cast<uint8_t*>(node)
+                - OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks));
+
+        if(pTableEntry->DllBase == nullptr || pTableEntry->BaseDllName.Buffer == nullptr)
+        {
+            continue;
+        }
+
+        //TODO: Hash dll name
+        if(wcscmp(moduleName.data(), pTableEntry->BaseDllName.Buffer) == 0)
+        {
+            return pTableEntry;
+        }
+    }
+
+    return nullptr;
+}
 struct ReadExportDirResult
 {
     bool success;
@@ -34,7 +281,8 @@ ReadExportDirResult tryGetExportDirectoryInfo(const uint8_t* base,
         reinterpret_cast<const IMAGE_NT_HEADERS*>(base + pDosHeader->e_lfanew);
     const IMAGE_OPTIONAL_HEADER* pOptionalHeader = &pNtHeaders->OptionalHeader;
 
-    res.exportDirRva  = pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+    res.exportDirRva =
+        pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
     res.exportDirSize = pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
 
     // Validate export directory is not empty and has valid RVA.
@@ -48,7 +296,8 @@ ReadExportDirResult tryGetExportDirectoryInfo(const uint8_t* base,
     else if(!isValidRvaRange(res.exportDirRva, res.exportDirSize, imageSize))
     {
         const std::wstring werr =
-            std::format(L"The export directory of Module '{}' has invalid bounds", moduleName);
+            std::format(L"The export directory of Module '{}' has invalid bounds",
+                        moduleName);
         res.errorTemplate = std::string(werr.begin(), werr.end());
         return res;
     }
@@ -112,246 +361,6 @@ uint32_t calculateExportSize(uint32_t rva,
     return nextHighestRVA - rva;
 }
 
-const LDR_DATA_TABLE_ENTRY* getModuleEntry(const std::wstring& moduleName) noexcept
-{
-    // PEB list head location is volatile; do not cache/make static
-    const LIST_ENTRY* pModuleListHead = getModuleListHead();
-
-    for(LIST_ENTRY* node = pModuleListHead->Flink; node != pModuleListHead; node = node->Flink)
-    {
-        // InMemoryOrderLinks = 2nd of 1st 2 entries type LIST_ENTRY;
-        //      = CONTAINING_RECORD(node, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks);
-        const LDR_DATA_TABLE_ENTRY* pTableEntry = reinterpret_cast<const LDR_DATA_TABLE_ENTRY*>(
-            reinterpret_cast<uint8_t*>(node) - OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks));
-
-        if(pTableEntry->DllBase == nullptr || pTableEntry->BaseDllName.Buffer == nullptr)
-        {
-            continue;
-        }
-
-        //TODO: Hash dll name
-        if(wcscmp(moduleName.data(), pTableEntry->BaseDllName.Buffer) == 0)
-        {
-            return pTableEntry;
-        }
-    }
-
-    return nullptr;
-}
-}  // namespace
-
-using namespace CrawlrNative;
-
-ModuleParseResult parseModuleMemoryInfo(const std::wstring& moduleName) noexcept
-{
-    ModuleParseResult res{ false, "", Module::MemoryInfo{} };
-    if(const LDR_DATA_TABLE_ENTRY* pLdrEntry = getModuleEntry(moduleName); pLdrEntry != nullptr)
-    {
-        res.memoryInfo.baseAddress = pLdrEntry->DllBase;
-    }
-    else
-    {
-        const std::wstring werr = std::format(L"Could not locate base address of '{}'", moduleName);
-        res.error               = std::string(werr.begin(), werr.end());
-        return res;
-    }
-
-    const uint8_t* baseAddress = reinterpret_cast<const uint8_t*>(res.memoryInfo.baseAddress);
-    const IMAGE_DOS_HEADER* pDosHeader = reinterpret_cast<const IMAGE_DOS_HEADER*>(baseAddress);
-
-    // Validate DOS header.
-    if(pDosHeader->e_magic != IMAGE_DOS_SIGNATURE
-       || pDosHeader->e_lfanew < sizeof(IMAGE_DOS_HEADER))
-    {
-        const std::wstring werr =
-            std::format(L"Module '{}' contained invalid DOS headers", moduleName);
-        res.error = std::string(werr.begin(), werr.end());
-        return res;
-    }
-
-    // Validate NT headers.
-    const IMAGE_NT_HEADERS* pNtHeaders =
-        reinterpret_cast<const IMAGE_NT_HEADERS*>(baseAddress + pDosHeader->e_lfanew);
-    if(pNtHeaders->Signature != IMAGE_NT_SIGNATURE)
-    {
-        const std::wstring werr =
-            std::format(L"Module '{}' contained invalid NT headers", moduleName);
-        res.error = std::string(werr.begin(), werr.end());
-        return res;
-    }
-
-    // Validate Optional header.
-    const IMAGE_OPTIONAL_HEADER* pOptionalHeader = &pNtHeaders->OptionalHeader;
-    if(pOptionalHeader->Magic != IMAGE_NT_OPTIONAL_HDR_MAGIC || pOptionalHeader->SizeOfImage == 0)
-    {
-        const std::wstring werr =
-            std::format(L"Module '{}' contained an invalid optional header", moduleName);
-        res.error = std::string(werr.begin(), werr.end());
-        return res;
-    }
-
-    // Validate image size.
-    res.memoryInfo.imageSize = pOptionalHeader->SizeOfImage;
-    if(pDosHeader->e_lfanew >= res.memoryInfo.imageSize
-       || (static_cast<uint64_t>(pDosHeader->e_lfanew) + sizeof(IMAGE_NT_HEADERS))
-              > res.memoryInfo.imageSize)
-    {
-        const std::wstring werr = std::format(L"Module '{}' has invalid bounds", moduleName);
-        res.error               = std::string(werr.begin(), werr.end());
-        return res;
-    }
-
-    // Try to get export directory info.
-    ReadExportDirResult resExportDir =
-        tryGetExportDirectoryInfo(baseAddress, res.memoryInfo.imageSize, moduleName);
-
-    if(!resExportDir.success)
-    {
-        res.error = resExportDir.errorTemplate;
-        return res;
-    }
-    else
-    {
-        res.memoryInfo.exportDirRva    = resExportDir.exportDirRva;
-        res.memoryInfo.exportDirSize   = resExportDir.exportDirSize;
-        res.memoryInfo.exportDirectory = reinterpret_cast<const IMAGE_EXPORT_DIRECTORY*>(
-            baseAddress + resExportDir.exportDirRva);
-    }
-
-    return res;
-}
-
-ExportsParseResult parseExports(Module& module,
-                                const std::vector<std::string>& targetNames) noexcept
-{
-    auto defaultNameFilter = [&targetNames](const char* exportName) -> bool {
-        return targetNames.empty()
-            || std::find_if(targetNames.begin(),
-                            targetNames.end(),
-                            [exportName](const std::string& name) { return name == exportName; })
-                   != targetNames.end();
-    };
-
-    return parseExports(module, defaultNameFilter);
-}
-
-
-ExportsParseResult parseExports(Module& module,
-                                std::function<bool(const char* exportName)> nameFilter) noexcept
-{
-    //TODO : Handle forwarded exports properly
-    //TODO: Add runtime hashing for pExportName
-    const Module::MemoryInfo memInfo = module.getMemoryInfo();
-    if(memInfo.baseAddress == nullptr || memInfo.exportDirectory == nullptr)
-    {
-        return { false, "Attempted to parse exports of module with invalid memory info." };
-    }
-
-    const uint8_t* pBase = reinterpret_cast<const uint8_t*>(memInfo.baseAddress);
-
-    // Validate export directory tables' bounds.
-    if(!isValidRvaTableRange(memInfo.exportDirectory->AddressOfFunctions,
-                             memInfo.exportDirectory->NumberOfFunctions,
-                             sizeof(DWORD),
-                             memInfo.imageSize)
-       || !isValidRvaTableRange(memInfo.exportDirectory->AddressOfNames,
-                                memInfo.exportDirectory->NumberOfNames,
-                                sizeof(DWORD),
-                                memInfo.imageSize)
-       || !isValidRvaTableRange(memInfo.exportDirectory->AddressOfNameOrdinals,
-                                memInfo.exportDirectory->NumberOfNames,
-                                sizeof(WORD),
-                                memInfo.imageSize))
-    {
-        return { false, "Export directory tables are out of image bounds." };
-    }
-
-    const DWORD* pAddressOfFunctions =
-        reinterpret_cast<const DWORD*>(pBase + memInfo.exportDirectory->AddressOfFunctions);
-    const DWORD* pAddressOfNames =
-        reinterpret_cast<const DWORD*>(pBase + memInfo.exportDirectory->AddressOfNames);
-    const WORD* pAddressOfNameOrdinals =
-        reinterpret_cast<const WORD*>(pBase + memInfo.exportDirectory->AddressOfNameOrdinals);
-    const DWORD numberOfNames = memInfo.exportDirectory->NumberOfNames;
-
-    // We cannot simply calculate against i + 1 since AddressOfFunctions is
-    // indexed by ordinal, not by memory location. Therefore, we build a sorted
-    // list of all export RVAs to calculate export sizes correctly.
-    const std::vector<uint32_t> sortedExportRVAs =
-        getSortedExportRVAs(pBase, memInfo.exportDirectory, memInfo.imageSize);
-
-    for(DWORD i = 0; i < numberOfNames; ++i)
-    {
-        // Get and validate null-terminated export name cstring.
-        const DWORD functionNameRVA = pAddressOfNames[i];
-        if(functionNameRVA == 0 || !isValidCStringRva(functionNameRVA, pBase, memInfo.imageSize))
-        {
-            continue;
-        }
-
-        const char* pExportName = reinterpret_cast<const char*>(pBase + functionNameRVA);
-
-        if(!nameFilter(pExportName))
-        {
-            continue;
-        }
-
-        // Get ordinal and validate that is within bounds.
-        const WORD ordinal = pAddressOfNameOrdinals[i];
-        if(ordinal >= memInfo.exportDirectory->NumberOfFunctions)
-        {
-            continue;
-        }
-
-        // Get function's RVA and validate.
-        uint32_t rva = pAddressOfFunctions[ordinal];
-        if(rva == 0 || rva >= memInfo.imageSize)
-        {
-            continue;
-        }
-
-        // Perform a rudimentary check for forwarded exports. //TODO: Handle properly.
-        if(memInfo.exportDirSize != 0 && rva >= memInfo.exportDirRva
-           && rva < (memInfo.exportDirRva + memInfo.exportDirSize))
-        {
-            continue;  // forwarded export
-        }
-
-        uint32_t exportSize = calculateExportSize(rva, sortedExportRVAs, memInfo.imageSize);
-
-        // const_cast is needed in case we want to later remap the export's base address.
-        void* pEntryBase = reinterpret_cast<void*>(const_cast<uint8_t*>(pBase + rva));
-
-        //TODO: Handle hooked syscalls properly
-        Export exp{ pEntryBase, rva, exportSize };
-        if(SyscallParser::ScanResult scan = SyscallParser::scanExport(exp);
-           scan.isSyscall && scan.matchesUnhookedSyscall)
-        {
-            module.addSyscall(
-                std::string(pExportName),  // TODO: runtime string encryption
-                Syscall{ pEntryBase, rva, exportSize, scan.syscallNumber, scan.pSyscallOpcode });
-
-            _DEBUG_PRINTF("[+] Found Syscall \"%s\": SSN=0x%X opcode=%p\n",
-                          pExportName,
-                          scan.syscallNumber,
-                          scan.pSyscallOpcode);
-        }
-        else
-        {
-            module.addExport(std::string(pExportName), exp);
-            _DEBUG_PRINTF("[+] Found Export \"%s\": 0x%p Size 0x%X\n",
-                          pExportName,
-                          pEntryBase,
-                          exportSize);
-        }
-    }
-
-    return { true, "" };
-}
-
-// Secondary anonymous namespace for bounds' validation helpers
-namespace
-{
 /**
  * @brief Validates that a given RVA range is within an image's bounds.
  *
@@ -405,5 +414,3 @@ bool isValidCStringRva(uint32_t rva, const uint8_t* base, uint32_t imageSize) no
 
 }  // namespace ModuleParser
 }  // namespace Crawlr
-
-#undef OFFSET
