@@ -93,7 +93,8 @@ Pattern Signature::parseHexString(std::string_view pattern)
     return parsedPattern;
 }
 
-std::vector<size_t> Signature::matchAll(const uint8_t* pData, size_t dataSize) const noexcept
+std::vector<size_t> Signature::matchAll(const uint8_t* pData,
+                                        size_t dataSize) const noexcept
 {
     std::vector<size_t> matches;
 
@@ -151,7 +152,9 @@ bool Signature::matches(const uint8_t* pData, size_t dataSize) const noexcept
     return this->matchFirst(pData, dataSize) != Signature::npos;
 }
 
-bool Signature::matchesAt(const uint8_t* pData, size_t dataSize, size_t offset) const noexcept
+bool Signature::matchesAt(const uint8_t* pData,
+                          size_t dataSize,
+                          size_t offset) const noexcept
 {
     if(this->isEmpty() || dataSize < this->size() + offset)
     {

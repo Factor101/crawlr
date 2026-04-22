@@ -33,7 +33,8 @@ class Syscall : public Export
     template<typename Return = uintptr_t, typename... Args>
     Return invoke(Args... args) const noexcept
     {
-        static_assert(sizeof...(Args) <= 8, "Syscall must be invoked with <= 8 arguments");
+        static_assert(sizeof...(Args) <= 8,
+                      "Syscall must be invoked with <= 8 arguments");
 
         std::array<uintptr_t, 8> arr{};
         size_t i = 0;

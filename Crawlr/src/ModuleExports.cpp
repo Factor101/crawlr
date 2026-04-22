@@ -4,7 +4,7 @@
 
 namespace Crawlr
 {
-Module& ModuleExports::addModule(const wchar_t* moduleName)
+Module& ModuleExports::addModule(const std::wstring& moduleName)
 {
     auto result = this->modules.emplace(moduleName, Crawlr::Module(moduleName));
     return result.first->second;

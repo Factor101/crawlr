@@ -41,7 +41,8 @@ class ValidatedPattern
         {
             if(!isValidChar(p[i]))
             {
-                throw std::invalid_argument("Invalid character found in hex signature pattern");
+                throw std::invalid_argument(
+                    "Invalid character found in hex signature pattern");
             }
         }
 
@@ -74,12 +75,14 @@ class Signature
 
     // Validated for char-array inputs (string literals and char arrays).
     template<size_t N>
-    Signature(const char (&pattern)[N]) : pattern(parseHexString(ValidatedPattern(pattern).get()))
+    Signature(const char (&pattern)[N])
+        : pattern(parseHexString(ValidatedPattern(pattern).get()))
     { }
 
     // Constructor for runtime strings.
     template<RuntimeString T>
-    explicit Signature(T&& hexPattern) : pattern(parseHexString(std::forward<T>(hexPattern)))
+    explicit Signature(T&& hexPattern)
+        : pattern(parseHexString(std::forward<T>(hexPattern)))
     { }
 
     // Constructor initializer list of PatternByte.

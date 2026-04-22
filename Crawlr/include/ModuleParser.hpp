@@ -2,8 +2,8 @@
 #include "Export.hpp"
 #include "Module.hpp"
 #include "Syscall.hpp"
+#include <expected>
 #include <functional>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -13,26 +13,16 @@ namespace ModuleParser
 {
 using namespace CrawlrNative;
 
-struct ModuleParseResult
-{
-    bool success;
-    std::string error;
-    Module::MemoryInfo memoryInfo;
-};
+std::expected<Module::MemoryInfo, std::string> parseModuleMemoryInfo(
+    const std::wstring& moduleName) noexcept;
 
-struct ExportsParseResult
-{
-    bool success;
-    std::string error;
-};
+std::expected<void, std::string> parseExports(
+    Module& module,
+    const std::vector<std::string>& targetNames = {}) noexcept;
 
-Module::MemoryInfo parseModuleMemoryInfo(const wchar_t* moduleName) noexcept;
-
-ExportsParseResult parseExports(Module& module,
-                                const std::vector<std::string>& targetNames = {}) noexcept;
-
-ExportsParseResult parseExports(Module& module,
-                                std::function<bool(const char* exportName)> nameFilter) noexcept;
+std::expected<void, std::string> parseExports(
+    Module& module,
+    std::function<bool(const char* exportName)> nameFilter) noexcept;
 namespace
 {
 inline LIST_ENTRY* getModuleListHead() noexcept

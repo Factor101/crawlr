@@ -3,17 +3,13 @@
 #include "./detail/NativeDefs.hpp"
 #include "Export.hpp"
 #include "Syscall.hpp"
+#include <expected>
 #include <map>
 #include <string>
 #include <vector>
 
 namespace Crawlr
 {
-namespace ModuleParser
-{
-struct ModuleParseResult;  // forward declaration
-}
-
 using ExportMap  = std::map<std::string, Crawlr::Export>;
 using SyscallMap = std::map<std::string, Crawlr::Syscall>;
 
@@ -41,7 +37,7 @@ class Module
     Export& addExport(std::string expName, const Export& exp) noexcept;
     Syscall& addSyscall(std::string expName, const Syscall& sc) noexcept;
 
-    [[nodiscard]] ModuleParser::ModuleParseResult load() noexcept;
+    [[nodiscard]] std::expected<MemoryInfo, std::string> load() noexcept;
     [[nodiscard]] inline std::wstring getModuleName() const noexcept { return this->moduleName; }
     [[nodiscard]] inline ExportMap& getExports() noexcept { return this->exports; }
     [[nodiscard]] inline SyscallMap& getSyscalls() noexcept { return this->syscalls; }

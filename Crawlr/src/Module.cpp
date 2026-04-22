@@ -3,15 +3,16 @@
 
 namespace Crawlr
 {
-ModuleParser::ModuleParseResult Module::load() noexcept
+std::expected<Module::MemoryInfo, std::string> Module::load() noexcept
 {
-    this->memoryInfo = ModuleParser::parseModuleMemoryInfo(this->moduleName);
-    if(!this->memoryInfo.baseAddress || !this->memoryInfo.exportDirectory)
+    auto res = ModuleParser::parseModuleMemoryInfo(this->moduleName);
+    if(!res)
     {
-        return { false, "Failed to parse module memory.", this->memoryInfo };
+        return std::unexpected(res.error());
     }
 
-    return { true, "", this->memoryInfo };
+    this->memoryInfo = *res;
+    return this->memoryInfo;
 }
 
 

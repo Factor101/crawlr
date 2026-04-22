@@ -9,9 +9,8 @@ namespace
 {
 constexpr uint8_t SYSCALL_OPCODE[] = { 0x0F, 0x05 };  // syscall instruction opcode
 const Signature SYSCALL_SIGNATURE =
-    "4C 8B D1 B8 ?? ?? ?? ?? 0F 05";                  // mov r10, rcx; mov eax, ?? ?? ?? ?? syscall
-const Signature SYSCALL_SIGNATURE_2 =
-    "4C 8B D1 B8 ?? ";
+    "4C 8B D1 B8 ?? ?? ?? ?? 0F 05";  // mov r10, rcx; mov eax, ?? ?? ?? ?? syscall
+const Signature SYSCALL_SIGNATURE_2      = "4C 8B D1 B8 ?? ";
 constexpr auto SYSCALL_INVOCATION_OFFSET = 8;
 constexpr auto SYSCALL_NUMBER_OFFSET     = 4;
 }  // namespace
@@ -26,7 +25,8 @@ constexpr auto SYSCALL_NUMBER_OFFSET     = 4;
     }
 
     result.isSyscall =
-        memcmp(pBase + SYSCALL_INVOCATION_OFFSET, SYSCALL_OPCODE, sizeof(SYSCALL_OPCODE)) == 0;
+        memcmp(pBase + SYSCALL_INVOCATION_OFFSET, SYSCALL_OPCODE, sizeof(SYSCALL_OPCODE))
+        == 0;
 
     if(!result.isSyscall)
     {

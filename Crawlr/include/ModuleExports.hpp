@@ -15,6 +15,6 @@ class ModuleExports
  public:
     ModuleExports() : modules{} { }
 
-    Module& addModule(const wchar_t* moduleName);
+    Module& addModule(const std::wstring& moduleName);
 };
 }  // namespace Crawlr
