@@ -5,9 +5,9 @@ int main()
 {
     auto modules = Crawlr::ModuleExports();
     auto ntdll   = modules.addModule(L"ntdll.dll");
-    if(auto res = ntdll.load(); !res.success)
+    if(auto res = ntdll.load(); !res)
     {
-        std::cout << "ERR: " << res.error << std::endl;
+        std::cout << "ERR: " << res.error() << std::endl;
         return 1;
     }
 
@@ -19,9 +19,9 @@ int main()
     auto exports =
         Crawlr::ModuleParser::parseExports(ntdll, { "NtOpenProcess", "NtAllocateVirtualMemory" });
 
-    if(!exports.success)
+    if(!exports.has_value())
     {
-        std::cout << "ERR: " << exports.error << std::endl;
+        std::cout << "ERR: " << exports.error() << std::endl;
         return 1;
     }
 

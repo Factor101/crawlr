@@ -1,6 +1,6 @@
 #pragma once
-#include <unordered_map>
 #include "Signature.hpp"
+#include <unordered_map>
 
 namespace Crawlr
 {

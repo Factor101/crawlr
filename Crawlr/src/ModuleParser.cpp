@@ -13,6 +13,40 @@ namespace Crawlr
 namespace ModuleParser
 {
 using namespace CrawlrNative;
+namespace  // Forward declarations for internal functions/structures
+{
+
+struct ReadExportDirResult
+{
+    bool success;
+    std::string errorTemplate;
+    uint32_t exportDirRva;
+    uint32_t exportDirSize;
+};
+
+ReadExportDirResult tryGetExportDirectoryInfo(const uint8_t* base,
+                                              uint32_t imageSize,
+                                              const std::wstring& moduleName) noexcept;
+
+const LDR_DATA_TABLE_ENTRY* getModuleEntry(const std::wstring& moduleName) noexcept;
+
+std::vector<uint32_t> getSortedExportRVAs(const uint8_t* pBase,
+                                          const IMAGE_EXPORT_DIRECTORY* pExportDir,
+                                          uint32_t imageSize) noexcept;
+uint32_t calculateExportSize(uint32_t rva,
+                             const std::vector<uint32_t>& sortedExportRVAs,
+                             uint32_t imageSize) noexcept;
+
+inline bool isValidRvaRange(uint32_t rva, uint32_t size, uint32_t imageSize) noexcept;
+
+bool isValidRvaTableRange(uint32_t tableRVA,
+                          uint32_t count,
+                          uint32_t elementSize,
+                          uint32_t imageSize) noexcept;
+
+bool isValidCStringRva(uint32_t rva, const uint8_t* base, uint32_t imageSize) noexcept;
+}  // namespace
+
 
 std::expected<Module::MemoryInfo, std::string> parseModuleMemoryInfo(
     const std::wstring& moduleName) noexcept
@@ -261,13 +295,6 @@ const LDR_DATA_TABLE_ENTRY* getModuleEntry(const std::wstring& moduleName) noexc
 
     return nullptr;
 }
-struct ReadExportDirResult
-{
-    bool success;
-    std::string errorTemplate;
-    uint32_t exportDirRva;
-    uint32_t exportDirSize;
-};
 
 ReadExportDirResult tryGetExportDirectoryInfo(const uint8_t* base,
                                               uint32_t imageSize,

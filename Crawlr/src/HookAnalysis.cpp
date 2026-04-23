@@ -6,9 +6,9 @@ namespace HookAnalysis
 {
 void buildDefaultSignatureList()
 {
-    knownHooks = {
-        { HookType::GENERIC_JMP, Signature("E9 ?? ?? ?? ??") }
-    };
+    // knownHooks = {
+    //     { HookType::GENERIC_JMP, Signature("E9 ?? ?? ?? ??") }
+    // };
 }
 }  // namespace HookAnalysis
 }  // namespace Crawlr
