@@ -34,14 +34,25 @@ class Module
  public:
     Module(std::wstring moduleName) : moduleName(moduleName), exports(), syscalls() { }
 
+    std::expected<void, std::string> parseExports(
+        const std::vector<std::string>& exportNames) noexcept;
+    std::expected<void, std::string> Module::parseExports(
+        std::function<bool(const char* exportName)> nameFilter) noexcept;
+
     Export& addExport(std::string expName, const Export& exp) noexcept;
     Syscall& addSyscall(std::string expName, const Syscall& sc) noexcept;
 
     [[nodiscard]] std::expected<MemoryInfo, std::string> load() noexcept;
-    [[nodiscard]] inline std::wstring getModuleName() const noexcept { return this->moduleName; }
+    [[nodiscard]] inline std::wstring getModuleName() const noexcept
+    {
+        return this->moduleName;
+    }
     [[nodiscard]] inline ExportMap& getExports() noexcept { return this->exports; }
     [[nodiscard]] inline SyscallMap& getSyscalls() noexcept { return this->syscalls; }
-    [[nodiscard]] inline MemoryInfo getMemoryInfo() const noexcept { return this->memoryInfo; }
+    [[nodiscard]] inline MemoryInfo getMemoryInfo() const noexcept
+    {
+        return this->memoryInfo;
+    }
 
     inline bool removeExport(const std::string& expName) noexcept
     {

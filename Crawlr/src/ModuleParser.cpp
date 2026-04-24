@@ -127,15 +127,15 @@ std::expected<Module::MemoryInfo, std::string> parseModuleMemoryInfo(
 
 std::expected<void, std::string> parseExports(
     Module& module,
-    const std::vector<std::string>& targetNames) noexcept
+    const std::vector<std::string>& exportNames) noexcept
 {
-    auto defaultNameFilter = [&targetNames](const char* exportName) -> bool {
-        return targetNames.empty()
+    auto defaultNameFilter = [&exportNames](const char* exportName) -> bool {
+        return exportNames.empty()
             || std::find_if(
-                   targetNames.begin(),
-                   targetNames.end(),
+                   exportNames.begin(),
+                   exportNames.end(),
                    [exportName](const std::string& name) { return name == exportName; })
-                   != targetNames.end();
+                   != exportNames.end();
     };
 
     return parseExports(module, defaultNameFilter);
