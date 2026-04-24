@@ -26,7 +26,7 @@ extern "C" __attribute__((naked)) uintptr_t invokeSyscall(
         mov rax, [rsp+0x48]   # rax = a7
         mov [rsp+0x38], rax   # rsp+0x38 = a7
         mov rax, [rsp+0x50]   # rax = a8
-        mov [rsp+0x40], rax   # rsp+0x38 = a8
+        mov [rsp+0x40], rax   # rsp+0x40 = a8
         xor rax, rax          # clear rax high bits
         mov eax, [rsp+0x08]   # restore eax to ssn value
 

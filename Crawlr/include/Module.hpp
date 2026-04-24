@@ -43,15 +43,17 @@ class Module
     Syscall& addSyscall(std::string expName, const Syscall& sc) noexcept;
 
     [[nodiscard]] std::expected<MemoryInfo, std::string> load() noexcept;
-    [[nodiscard]] inline std::wstring getModuleName() const noexcept
-    {
-        return this->moduleName;
-    }
     [[nodiscard]] inline ExportMap& getExports() noexcept { return this->exports; }
     [[nodiscard]] inline SyscallMap& getSyscalls() noexcept { return this->syscalls; }
+
     [[nodiscard]] inline MemoryInfo getMemoryInfo() const noexcept
     {
         return this->memoryInfo;
+    }
+
+    [[nodiscard]] inline std::wstring getModuleName() const noexcept
+    {
+        return this->moduleName;
     }
 
     inline bool removeExport(const std::string& expName) noexcept

@@ -10,14 +10,76 @@
 #include <ntdef.h>
 #include <windef.h>
 
-#ifndef PVOID
-#define PVOID void*
-#endif  // !PVOID
-
-
-
 namespace CrawlrNative
 {
+typedef unsigned char UBYTE;
+typedef void* PVOID;
+typedef union _UNWIND_CODE
+{
+    struct
+    {
+        UBYTE CodeOffset;
+        UBYTE UnwindOp : 4;
+        UBYTE OpInfo   : 4;
+    };
+    USHORT FrameOffset;
+} UNWIND_CODE, *PUNWIND_CODE;
+
+// unwind opcodes: https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170#unwind-operation-code
+// and https://github.com/reactos/reactos/blob/3bd9ddca94bda829b3977918a1be0a92a8a610f6/sdk/lib/rtl/amd64/unwind.c#L537
+typedef enum _UNWIND_OP_CODES
+{
+    UWOP_PUSH_NONVOL = 0, /* info == register number */
+    UWOP_ALLOC_LARGE,     /* no info, alloc size in next 2 slots */
+    UWOP_ALLOC_SMALL,     /* info == size of allocation / 8 - 1 */
+    UWOP_SET_FPREG,       /* no info, FP = RSP + UNWIND_INFO.FPRegOffset*16 */
+    UWOP_SAVE_NONVOL,     /* info == register number, offset in next slot */
+    UWOP_SAVE_NONVOL_FAR, /* info == register number, offset in next 2 slots */
+    UWOP_SAVE_XMM128 = 8, /* info == XMM reg number, offset in next slot */
+    UWOP_SAVE_XMM128_FAR, /* info == XMM reg number, offset in next 2 slots */
+    UWOP_PUSH_MACHFRAME   /* info == 0: no error-code, 1: error-code */
+} UNWIND_CODE_OPS;
+
+
+typedef struct _UNWIND_INFO
+{
+    UCHAR Version : 3;
+    UCHAR Flags   : 5;
+    UCHAR SizeOfPrologue;
+    UCHAR CountOfUnwindCodes;
+    UCHAR FrameRegister       : 4;
+    UCHAR FrameRegisterOffset : 4;
+    UNWIND_CODE UnwindCode[1];
+    // UNWIND_CODE MoreUnwindCode[((CountOfUnwindCodes + 1) & ~1) - 1];
+    union
+    {
+        OPTIONAL ULONG ExceptionHandler;
+        OPTIONAL ULONG FunctionEntry;
+    };
+
+    OPTIONAL ULONG ExceptionData[];
+} UNWIND_INFO, *PUNWIND_INFO;
+
+typedef struct _EXCEPTION_INFO
+{
+    UINT64 hModule;
+    UINT64 pExceptionDirectory;
+    DWORD dwRuntimeFunctionCount;
+} EXCEPTION_INFO, *PEXCEPTION_INFO;
+
+typedef struct _IMAGE_RUNTIME_FUNCTION_ENTRY
+{
+    DWORD BeginAddress;
+    DWORD EndAddress;
+    union
+    {
+        DWORD UnwinInfoAddress;
+        DWORD UnwindData;
+    } DUMMYUNIONNAME;
+
+} RUNTIME_FUNCTION, *PRUNTIME_FUNCTION, _IMAGE_RUNTIME_FUNCTION_ENTRY,
+    *_PIMAGE_RUNTIME_FUNCTION_ENTRY;
+
 typedef struct _IO_STATUS_BLOCK
 {
     union
