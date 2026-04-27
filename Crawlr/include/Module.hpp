@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace Crawlr
 {
@@ -36,7 +37,7 @@ class Module
 
     std::expected<void, std::string> parseExports(
         const std::vector<std::string>& exportNames) noexcept;
-    std::expected<void, std::string> Module::parseExports(
+    std::expected<void, std::string> parseExports(
         std::function<bool(const char* exportName)> nameFilter) noexcept;
 
     Export& addExport(std::string expName, const Export& exp) noexcept;

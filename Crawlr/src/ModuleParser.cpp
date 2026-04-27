@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstring>
 #include <format>
+#include <utility>
 
 #define OFFSET(t_struct, field) (uint64_t)(&((t_struct*)nullptr)->field)
 
@@ -70,7 +71,7 @@ std::expected<Module::MemoryInfo, std::string> parseModuleMemoryInfo(
 
     // Validate DOS header.
     if(pDosHeader->e_magic != IMAGE_DOS_SIGNATURE
-       || pDosHeader->e_lfanew < sizeof(IMAGE_DOS_HEADER))
+       || std::cmp_less(pDosHeader->e_lfanew, sizeof(IMAGE_DOS_HEADER)))
     {
         const std::wstring werr =
             std::format(L"Module '{}' contained invalid DOS headers", moduleName);
@@ -99,9 +100,9 @@ std::expected<Module::MemoryInfo, std::string> parseModuleMemoryInfo(
 
     // Validate image size.
     memInfo.imageSize = pOptionalHeader->SizeOfImage;
-    if(pDosHeader->e_lfanew >= memInfo.imageSize
-       || (static_cast<uint64_t>(pDosHeader->e_lfanew) + sizeof(IMAGE_NT_HEADERS))
-              > memInfo.imageSize)
+    if(std::cmp_greater_equal(pDosHeader->e_lfanew, memInfo.imageSize)
+       || std::cmp_greater(pDosHeader->e_lfanew + sizeof(IMAGE_NT_HEADERS),
+                           memInfo.imageSize))
     {
         const std::wstring werr =
             std::format(L"Module '{}' has invalid bounds", moduleName);
@@ -112,10 +113,8 @@ std::expected<Module::MemoryInfo, std::string> parseModuleMemoryInfo(
     ReadExportDirResult resExportDir =
         tryGetExportDirectoryInfo(baseAddress, memInfo.imageSize, moduleName);
 
-    if(!resExportDir.success)
-    {
-        return std::unexpected(resExportDir.errorTemplate);
-    }
+    if(!resExportDir.success) return std::unexpected(resExportDir.errorTemplate);
+    { }
 
     memInfo.exportDirRva    = resExportDir.exportDirRva;
     memInfo.exportDirSize   = resExportDir.exportDirSize;

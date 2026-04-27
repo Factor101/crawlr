@@ -5,7 +5,7 @@
             "name": "gpp-debug",
             "displayName": "g++ Debug",
             "description": "",
-            "binaryDir": "${sourceDir}/build/debug",
+            "binaryDir": "${sourceDir}/build/${presetName}",
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "g++",
