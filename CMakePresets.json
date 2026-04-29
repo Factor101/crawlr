@@ -4,13 +4,21 @@
         {
             "name": "gpp-debug",
             "displayName": "g++ Debug",
-            "description": "",
-            "binaryDir": "${sourceDir}/build/${presetName}",
+            "description": "MinGW GCC",
+            "binaryDir": "${sourceDir}/build/debug",
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "g++",
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_CXX_FLAGS": "-g -masm=intel -std=c++23 -Wall"
+                "CMAKE_CXX_FLAGS": "-g -masm=intel -Wall"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "intelliSenseMode": "linux-gcc-x64",
+                    "intelliSenseOptions": {
+                        "useCompilerDefaults": true
+                    }
+                }
             }
         },
         {
@@ -19,7 +27,8 @@
             "inherits": "gpp-debug",
             "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_FLAGS": "-masm=intel -O3 -Wall"
             }
         }
     ],

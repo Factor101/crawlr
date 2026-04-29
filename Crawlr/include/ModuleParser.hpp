@@ -21,19 +21,5 @@ std::expected<void, std::string> parseExports(
 std::expected<void, std::string> parseExports(
     Module& module,
     std::function<bool(const char* exportName)> nameFilter) noexcept;
-namespace
-{
-using namespace CrawlrNative;
-inline LIST_ENTRY* getModuleListHead() noexcept
-{
-    PEB* peb;
-    asm("mov %[ppeb], gs:[0x60]"
-        : [ppeb] "=r"(peb));
-
-    LIST_ENTRY* pModuleListHead = &peb->Ldr->InMemoryOrderModuleList;
-
-    return pModuleListHead;
-}
-}  // namespace
 }  // namespace ModuleParser
 }  // namespace Crawlr

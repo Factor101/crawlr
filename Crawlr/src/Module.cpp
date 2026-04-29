@@ -26,7 +26,8 @@ std::expected<void, std::string> Module::parseExports(
 {
     return ModuleParser::parseExports(*this, nameFilter);
 }
-    Export& Module::addExport(std::string expName, const Export& exp) noexcept
+
+Export& Module::addExport(std::string expName, const Export& exp) noexcept
 {
     auto result = this->exports.emplace(expName, exp);
     return result.first->second;
