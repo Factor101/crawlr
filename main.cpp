@@ -56,14 +56,4 @@ int main()
     {
         std::wcout << L"Successfully allocated memory at: " << baseAddress << std::endl;
     }
-
-    // test that memory is actually usable
-    if(baseAddress)
-    {
-        char* p = static_cast<char*>(baseAddress);
-        p[0]    = 'H';
-        p[1]    = 'i';
-        p[2]    = '\0';
-        std::cout << "Wrote to allocated memory: " << p << std::endl;
-    }
 }

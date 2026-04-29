@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
 
-
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -13,7 +12,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(crawlr VERSION 1.0.0 LANGUAGES CXX)
 
+option(CRAWLR_BUILD_TESTS "Build Crawlr unit tests" ${PROJECT_IS_TOP_LEVEL})
+
 add_subdirectory(Crawlr)
 
-add_executable(crawlr_test main.cpp)
-target_link_libraries(crawlr_test PRIVATE crawlr)
+# Simple demo executable
+add_executable(crawlr_demo main.cpp)
+target_link_libraries(crawlr_demo PRIVATE crawlr)
+
+if(CRAWLR_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
