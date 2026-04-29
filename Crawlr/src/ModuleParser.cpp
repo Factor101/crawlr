@@ -7,7 +7,7 @@
 #include <format>
 #include <utility>
 
-#define OFFSET(t_struct, field) (uint64_t)(&((t_struct*)nullptr)->field)
+#define CRAWLR_OFFSET(t_struct, field) (uint64_t)(&((t_struct*)nullptr)->field)
 
 namespace Crawlr
 {
@@ -113,8 +113,10 @@ std::expected<Module::MemoryInfo, std::string> parseModuleMemoryInfo(
     ReadExportDirResult resExportDir =
         tryGetExportDirectoryInfo(baseAddress, memInfo.imageSize, moduleName);
 
-    if(!resExportDir.success) return std::unexpected(resExportDir.errorTemplate);
-    { }
+    if(!resExportDir.success)
+    {
+        return std::unexpected(resExportDir.errorTemplate);
+    }
 
     memInfo.exportDirRva    = resExportDir.exportDirRva;
     memInfo.exportDirSize   = resExportDir.exportDirSize;
@@ -265,6 +267,18 @@ std::expected<void, std::string> parseExports(
 
 namespace
 {
+using namespace CrawlrNative;
+inline LIST_ENTRY* getModuleListHead() noexcept
+{
+    PEB* peb;
+    asm("mov %[ppeb], gs:[0x60]"
+        : [ppeb] "=r"(peb));
+
+    LIST_ENTRY* pModuleListHead = &peb->Ldr->InMemoryOrderModuleList;
+
+    return pModuleListHead;
+}
+
 const LDR_DATA_TABLE_ENTRY* getModuleEntry(const std::wstring& moduleName) noexcept
 {
     // PEB list head location is volatile; do not cache/make static
@@ -278,7 +292,7 @@ const LDR_DATA_TABLE_ENTRY* getModuleEntry(const std::wstring& moduleName) noexc
         const LDR_DATA_TABLE_ENTRY* pTableEntry =
             reinterpret_cast<const LDR_DATA_TABLE_ENTRY*>(
                 reinterpret_cast<uint8_t*>(node)
-                - OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks));
+                - CRAWLR_OFFSET(LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks));
 
         if(pTableEntry->DllBase == nullptr || pTableEntry->BaseDllName.Buffer == nullptr)
         {

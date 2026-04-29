@@ -4,10 +4,11 @@
 #include "Export.hpp"
 #include "Syscall.hpp"
 #include <expected>
+#include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace Crawlr
 {
@@ -35,6 +36,8 @@ class Module
  public:
     Module(std::wstring moduleName) : moduleName(moduleName), exports(), syscalls() { }
 
+    [[nodiscard]] std::expected<MemoryInfo, std::string> load() noexcept;
+
     std::expected<void, std::string> parseExports(
         const std::vector<std::string>& exportNames) noexcept;
     std::expected<void, std::string> parseExports(
@@ -43,9 +46,20 @@ class Module
     Export& addExport(std::string expName, const Export& exp) noexcept;
     Syscall& addSyscall(std::string expName, const Syscall& sc) noexcept;
 
-    [[nodiscard]] std::expected<MemoryInfo, std::string> load() noexcept;
-    [[nodiscard]] inline ExportMap& getExports() noexcept { return this->exports; }
+    [[nodiscard]] inline ExportMap& getExports() noexcept { return this->exports; }  //TODO: need to protect against uninit
     [[nodiscard]] inline SyscallMap& getSyscalls() noexcept { return this->syscalls; }
+
+    [[nodiscard]] inline Export* getExport(const std::string& exportName) noexcept
+    {
+        auto it = this->exports.find(exportName);
+        return it != this->exports.end() ? &it->second : nullptr;
+    }
+
+    [[nodiscard]] inline Syscall* getSyscall(const std::string& syscallName) noexcept
+    {
+        auto it = this->syscalls.find(syscallName);
+        return it != this->syscalls.end() ? &it->second : nullptr;
+    }
 
     [[nodiscard]] inline MemoryInfo getMemoryInfo() const noexcept
     {

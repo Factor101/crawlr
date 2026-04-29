@@ -20,7 +20,7 @@ template<typename T>
 concept RuntimeString = std::is_same_v<std::decay_t<T>, std::string>
                      || std::is_same_v<std::decay_t<T>, std::string_view>;
 
-namespace
+namespace detail
 {
 class ValidatedPattern
 {
@@ -29,7 +29,7 @@ class ValidatedPattern
 
     static constexpr bool isValidChar(char c)  // clang-format off
     {
-        return c == '?' || c == ' '
+        return  c == '?' || c == ' '
             || (c >= '0' && c <= '9')
             || (c >= 'A' && c <= 'F')
             || (c >= 'a' && c <= 'f');  // clang-format on
@@ -58,7 +58,7 @@ class ValidatedPattern
     constexpr std::string_view get() const noexcept { return pattern; }
     constexpr operator std::string_view() const noexcept { return pattern; }
 };
-}  // namespace
+}  // namespace detail
 
 class Signature
 {
@@ -76,7 +76,7 @@ class Signature
     // Validated for char-array inputs (string literals and char arrays).
     template<size_t N>
     Signature(const char (&pattern)[N])
-        : pattern(parseHexString(ValidatedPattern(pattern).get()))
+        : pattern(parseHexString(Crawlr::detail::ValidatedPattern(pattern).get()))
     { }
 
     // Constructor for runtime strings.
