@@ -6,6 +6,8 @@
             "displayName": "g++ Debug",
             "description": "MinGW GCC",
             "binaryDir": "${sourceDir}/build/debug",
+            "description": "MinGW GCC",
+            "binaryDir": "${sourceDir}/build/debug",
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "g++",
